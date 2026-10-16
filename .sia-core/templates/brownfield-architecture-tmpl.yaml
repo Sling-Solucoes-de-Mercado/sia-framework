@@ -1,0 +1,488 @@
+# Template da arquitetura de evolução em sistema existente (brownfield).
+# Usado por: @dev [Arquitetura] em *create-brownfield-architecture, via task create-doc.
+# Entradas: o PRD brownfield (docs/prd.md) e a documentação do projeto existente (ex.: saída do *document-project).
+# Os títulos "Tech Stack", "Source Tree" e "Coding Standards" são fixos: o *shard-doc gera tech-stack.md,
+# source-tree.md e coding-standards.md em docs/architecture/, que o @dev sempre carrega (devLoadAlwaysFiles).
+template:
+  id: brownfield-architecture-template
+  name: Arquitetura de Evolução Brownfield
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/architecture.md
+    title: "{{project_name}}: Arquitetura de Evolução Brownfield"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: introduction
+    title: Introdução
+    instruction: |
+      IMPORTANTE: ESCOPO E AVALIAÇÃO OBRIGATÓRIOS.
+
+      Este documento de arquitetura é para evoluções SIGNIFICATIVAS em projetos existentes, que exigem planejamento arquitetural abrangente. Antes de continuar:
+
+      1. **Confirme a complexidade.** Verifique se a evolução realmente exige planejamento arquitetural. Para acréscimos simples, recomende: "Para mudanças mais simples, que não exigem planejamento arquitetural, use `@pm *create-epic` ou `@pm *create-brownfield-story`."
+
+      2. **ENTRADAS OBRIGATÓRIAS:**
+         - O PRD brownfield concluído (docs/prd.md)
+         - A documentação técnica do projeto existente (pasta docs/ ou fornecida pelo usuário)
+         - Acesso à estrutura do projeto existente (na IDE ou por arquivos enviados)
+
+      3. **ANÁLISE PROFUNDA OBRIGATÓRIA.** Analise a fundo o código, os padrões de arquitetura e as restrições técnicas existentes antes de QUALQUER recomendação. Toda sugestão se baseia na análise real do projeto, não em suposições.
+
+      4. **VALIDAÇÃO CONTÍNUA.** Ao longo do processo, valide explicitamente seu entendimento com o usuário. Para cada decisão de arquitetura, confirme: "Pela análise do seu sistema, recomendo [decisão] porque [evidência do projeto]. Isso corresponde à realidade do sistema?"
+
+      Se faltar alguma entrada obrigatória, peça antes de continuar.
+    elicit: true
+    sections:
+      - id: intro-content
+        template: |
+          Este documento descreve a abordagem arquitetural para evoluir {{project_name}} com {{enhancement_description}}. O objetivo principal é servir de guia arquitetural para o desenvolvimento conduzido por IA das novas funcionalidades, garantindo uma integração sem atritos com o sistema existente.
+
+          **Relação com a arquitetura existente:**
+          Este documento complementa a arquitetura atual do projeto, definindo como os novos componentes se integram aos sistemas existentes. Quando houver conflito entre padrões novos e existentes, ele orienta como manter a consistência ao implementar a evolução.
+      - id: existing-project-analysis
+        title: Análise do Projeto Existente
+        instruction: |
+          Analise a estrutura e a arquitetura do projeto existente:
+
+          1. Revise a documentação existente em docs/
+          2. Examine o stack atual e as versões
+          3. Identifique os padrões e as convenções de arquitetura existentes
+          4. Registre o setup atual de deploy e de infraestrutura
+          5. Documente as restrições e as limitações
+
+          CRÍTICO: depois da análise, valide explicitamente os achados: "Pela análise do seu projeto, identifiquei o seguinte sobre o sistema existente: [principais achados]. Confirme se estas observações estão corretas antes que eu siga para as recomendações de arquitetura."
+        elicit: true
+        sections:
+          - id: current-state
+            title: Estado Atual do Projeto
+            template: |
+              - **Propósito principal:** {{existing_project_purpose}}
+              - **Stack atual:** {{existing_tech_summary}}
+              - **Estilo de arquitetura:** {{existing_architecture_style}}
+              - **Método de deploy:** {{existing_deployment_approach}}
+          - id: available-docs
+            title: Documentação Disponível
+            type: bullet-list
+            template: "- {{existing_docs_summary}}"
+          - id: constraints
+            title: Restrições Identificadas
+            type: bullet-list
+            template: "- {{constraint}}"
+      - id: changelog
+        title: Change Log
+        type: table
+        columns: [Mudança, Data, Versão, Descrição, Autor]
+        instruction: Registre as versões e as mudanças do documento.
+
+  - id: enhancement-scope
+    title: Escopo da Evolução e Estratégia de Integração
+    instruction: |
+      Defina como a evolução se integra ao sistema existente:
+
+      1. Revise o escopo da evolução no PRD brownfield
+      2. Identifique os pontos de integração com o código existente
+      3. Defina os limites entre a funcionalidade nova e a existente
+      4. Estabeleça os requisitos de compatibilidade
+
+      PONTO DE VALIDAÇÃO: antes de apresentar a estratégia de integração, confirme: "Pela minha análise, a abordagem de integração proposta considera [características específicas do sistema existente]. Estes pontos de integração e limites respeitam os padrões atuais da sua arquitetura. A avaliação está correta?"
+    elicit: true
+    sections:
+      - id: enhancement-overview
+        title: Visão Geral da Evolução
+        template: |
+          **Tipo de evolução:** {{enhancement_type}}
+          **Escopo:** {{enhancement_scope}}
+          **Impacto na integração:** {{integration_impact_level}}
+      - id: integration-approach
+        title: Abordagem de Integração
+        template: |
+          **Estratégia de integração do código:** {{code_integration_approach}}
+          **Integração com o banco:** {{database_integration_approach}}
+          **Integração de API:** {{api_integration_approach}}
+          **Integração de UI:** {{ui_integration_approach}}
+      - id: compatibility-requirements
+        title: Requisitos de Compatibilidade
+        template: |
+          - **Compatibilidade com as APIs existentes:** {{api_compatibility}}
+          - **Compatibilidade do schema do banco:** {{db_compatibility}}
+          - **Consistência de UI/UX:** {{ui_compatibility}}
+          - **Impacto no desempenho:** {{performance_constraints}}
+
+  - id: tech-stack-alignment
+    title: Tech Stack
+    instruction: |
+      Garanta que os novos componentes se alinhem às escolhas de tecnologia existentes:
+
+      1. Use o stack existente como base
+      2. Só introduza tecnologia nova quando for absolutamente necessário
+      3. Justifique cada acréscimo com motivo claro
+      4. Garanta a compatibilidade de versões com as dependências existentes
+
+      O *shard-doc gera docs/architecture/tech-stack.md a partir desta seção.
+    elicit: true
+    sections:
+      - id: existing-stack
+        title: Stack Tecnológico Existente
+        type: table
+        columns: [Categoria, Tecnologia atual, Versão, Uso na evolução, Observações]
+        instruction: Documente o stack atual que precisa ser mantido ou integrado.
+      - id: new-tech-additions
+        title: Tecnologias Novas
+        condition: A evolução exige tecnologias novas
+        type: table
+        columns: [Tecnologia, Versão, Propósito, Justificativa, Método de integração]
+        instruction: Inclua só se a evolução exigir tecnologia nova.
+
+  - id: data-models
+    title: Modelos de Dados e Mudanças de Schema
+    instruction: |
+      Defina os novos modelos de dados e como se integram ao schema existente:
+
+      1. Identifique as entidades novas que a evolução exige
+      2. Defina as relações com os modelos existentes
+      3. Planeje as mudanças no schema do banco (acréscimos e modificações)
+      4. Garanta a compatibilidade retroativa
+
+      Migrations seguem o fluxo seguro do @dev [Dados] (`*db-migrate`): snapshot, dry-run e rollback planejado.
+    elicit: true
+    sections:
+      - id: new-models
+        title: Novos Modelos de Dados
+        repeatable: true
+        sections:
+          - id: model
+            title: "{{model_name}}"
+            template: |
+              **Propósito:** {{model_purpose}}
+              **Integração:** {{integration_with_existing}}
+
+              **Atributos principais:**
+              - {{attribute_1}}: {{type_1}}: {{description_1}}
+              - {{attribute_2}}: {{type_2}}: {{description_2}}
+
+              **Relações:**
+              - **Com os existentes:** {{existing_relationships}}
+              - **Com os novos:** {{new_relationships}}
+      - id: schema-integration
+        title: Estratégia de Integração do Schema
+        template: |
+          **Mudanças no banco:**
+          - **Tabelas novas:** {{new_tables_list}}
+          - **Tabelas modificadas:** {{modified_tables_list}}
+          - **Índices novos:** {{new_indexes_list}}
+          - **Estratégia de migração:** {{migration_approach}}
+
+          **Compatibilidade retroativa:**
+          - {{compatibility_measure_1}}
+          - {{compatibility_measure_2}}
+
+  - id: component-architecture
+    title: Arquitetura de Componentes
+    instruction: |
+      Defina os novos componentes e sua integração com a arquitetura existente:
+
+      1. Identifique os componentes novos que a evolução exige
+      2. Defina as interfaces com os componentes existentes
+      3. Estabeleça limites e responsabilidades claros
+      4. Planeje os pontos de integração e o fluxo de dados
+
+      VALIDAÇÃO OBRIGATÓRIA: antes de apresentar a arquitetura de componentes, confirme: "Os componentes novos que proponho seguem os padrões de arquitetura que identifiquei no seu código: [padrões específicos]. As interfaces de integração respeitam a estrutura de componentes e os padrões de comunicação atuais. Isso corresponde à realidade do projeto?"
+    elicit: true
+    sections:
+      - id: new-components
+        title: Componentes Novos
+        repeatable: true
+        sections:
+          - id: component
+            title: "{{component_name}}"
+            template: |
+              **Responsabilidade:** {{component_description}}
+              **Pontos de integração:** {{integration_points}}
+
+              **Interfaces principais:**
+              - {{interface_1}}
+              - {{interface_2}}
+
+              **Dependências:**
+              - **Componentes existentes:** {{existing_dependencies}}
+              - **Componentes novos:** {{new_dependencies}}
+
+              **Tecnologia:** {{component_tech_details}}
+      - id: interaction-diagram
+        title: Diagrama de Interação dos Componentes
+        type: code
+        instruction: Bloco de código `mermaid` (graph) mostrando como os componentes novos interagem com os existentes.
+
+  - id: api-design
+    title: Desenho e Integração de API
+    condition: A evolução exige mudanças de API
+    instruction: |
+      Defina os endpoints novos e a integração com as APIs existentes:
+
+      1. Planeje os endpoints novos que a evolução exige
+      2. Garanta a consistência com os padrões de API existentes
+      3. Defina a integração de autenticação e autorização
+      4. Planeje a estratégia de versionamento, se necessário
+    elicit: true
+    sections:
+      - id: api-strategy
+        title: Estratégia de Integração de API
+        template: |
+          **Estratégia de integração de API:** {{api_integration_strategy}}
+          **Autenticação:** {{auth_integration}}
+          **Versionamento:** {{versioning_approach}}
+      - id: new-endpoints
+        title: Endpoints Novos
+        repeatable: true
+        sections:
+          - id: endpoint
+            title: "{{endpoint_name}}"
+            template: |
+              - **Método:** {{http_method}}
+              - **Endpoint:** {{endpoint_path}}
+              - **Propósito:** {{endpoint_purpose}}
+              - **Integração:** {{integration_with_existing}}
+            sections:
+              - id: request
+                title: Requisição
+                type: code
+                instruction: Bloco de código `json`.
+                template: "{{request_schema}}"
+              - id: response
+                title: Resposta
+                type: code
+                instruction: Bloco de código `json`.
+                template: "{{response_schema}}"
+
+  - id: external-api-integration
+    title: Integração com APIs Externas
+    condition: A evolução exige APIs externas novas
+    instruction: Documente as integrações com APIs externas novas que a evolução exige.
+    repeatable: true
+    sections:
+      - id: external-api
+        title: "API {{api_name}}"
+        template: |
+          - **Propósito:** {{api_purpose}}
+          - **Documentação:** {{api_docs_url}}
+          - **URL base:** {{api_base_url}}
+          - **Autenticação:** {{auth_method}}
+          - **Método de integração:** {{integration_approach}}
+
+          **Endpoints usados:**
+          - `{{method}} {{endpoint_path}}`: {{endpoint_purpose}}
+
+          **Tratamento de erros:** {{error_handling_strategy}}
+
+  - id: source-tree-integration
+    title: Source Tree
+    instruction: |
+      Defina como o código novo se integra à estrutura existente do projeto:
+
+      1. Siga os padrões de organização existentes
+      2. Identifique onde ficarão os arquivos e as pastas novos
+      3. Garanta a consistência com as convenções de nomes existentes
+      4. Planeje a mínima perturbação na estrutura atual
+
+      O *shard-doc gera docs/architecture/source-tree.md a partir desta seção.
+    elicit: true
+    sections:
+      - id: existing-structure
+        title: Estrutura Existente do Projeto
+        type: code
+        instruction: Bloco de código `plaintext` com as partes relevantes da estrutura atual.
+        template: "{{existing_structure_relevant_parts}}"
+      - id: new-file-organization
+        title: Organização dos Arquivos Novos
+        type: code
+        instruction: Bloco de código `plaintext` com só os acréscimos à estrutura existente.
+        template: |
+          {{project-root}}/
+          ├── {{existing_structure_context}}
+          │   ├── {{new_folder_1}}/           # {{purpose_1}}
+          │   │   ├── {{new_file_1}}
+          │   │   └── {{new_file_2}}
+          │   ├── {{existing_folder}}/        # pasta existente com acréscimos
+          │   │   ├── {{existing_file}}       # arquivo existente
+          │   │   └── {{new_file_3}}          # acréscimo novo
+          │   └── {{new_folder_2}}/           # {{purpose_2}}
+      - id: integration-guidelines
+        title: Diretrizes de Integração
+        template: |
+          - **Nomes de arquivo:** {{file_naming_consistency}}
+          - **Organização de pastas:** {{folder_organization_approach}}
+          - **Padrões de import e export:** {{import_export_consistency}}
+
+  - id: infrastructure-deployment
+    title: Integração de Infraestrutura e Deploy
+    instruction: |
+      Defina como a evolução será implantada junto com a infraestrutura existente:
+
+      1. Use o pipeline de deploy e a infraestrutura existentes
+      2. Identifique as mudanças de infraestrutura necessárias
+      3. Planeje a estratégia de deploy para minimizar o risco
+      4. Defina os procedimentos de rollback
+
+      A execução de deploy e a configuração de CI/CD são exclusivas do @devops.
+    elicit: true
+    sections:
+      - id: existing-infrastructure
+        title: Infraestrutura Existente
+        template: |
+          **Deploy atual:** {{existing_deployment_summary}}
+          **Ferramentas de infraestrutura:** {{existing_infrastructure_tools}}
+          **Ambientes:** {{existing_environments}}
+      - id: enhancement-deployment
+        title: Estratégia de Deploy da Evolução
+        template: |
+          **Abordagem de deploy:** {{deployment_approach}}
+          **Mudanças de infraestrutura:** {{infrastructure_changes}}
+          **Integração com o pipeline:** {{pipeline_integration}}
+      - id: rollback-strategy
+        title: Estratégia de Rollback
+        template: |
+          **Método de rollback:** {{rollback_method}}
+          **Mitigação de riscos:** {{risk_mitigation}}
+          **Monitoramento:** {{monitoring_approach}}
+
+  - id: coding-standards
+    title: Coding Standards
+    instruction: |
+      Garanta que o código novo siga as convenções do projeto existente:
+
+      1. Documente os padrões de código existentes, a partir da análise do projeto
+      2. Identifique os requisitos específicos da evolução
+      3. Garanta a consistência com os padrões do código existente
+      4. Defina os padrões de organização do código novo
+
+      O *shard-doc gera docs/architecture/coding-standards.md a partir desta seção.
+    elicit: true
+    sections:
+      - id: existing-standards
+        title: Conformidade com os Padrões Existentes
+        template: |
+          **Estilo de código:** {{existing_code_style}}
+          **Regras de lint:** {{existing_linting}}
+          **Padrões de teste:** {{existing_test_patterns}}
+          **Estilo de documentação:** {{existing_doc_style}}
+      - id: enhancement-standards
+        title: Padrões Específicos da Evolução
+        condition: A evolução exige padrões novos
+        repeatable: true
+        template: "- **{{standard_name}}:** {{standard_description}}"
+      - id: integration-rules
+        title: Regras Críticas de Integração
+        template: |
+          - **Compatibilidade com as APIs existentes:** {{api_compatibility_rule}}
+          - **Integração com o banco:** {{db_integration_rule}}
+          - **Tratamento de erros:** {{error_handling_integration}}
+          - **Consistência dos logs:** {{logging_consistency}}
+
+  - id: testing-strategy
+    title: Estratégia de Testes
+    instruction: |
+      Defina a abordagem de testes da evolução:
+
+      1. Integre à suíte de testes existente
+      2. Garanta que a funcionalidade existente continue intacta
+      3. Planeje os testes das funcionalidades novas
+      4. Defina a abordagem dos testes de integração
+    elicit: true
+    sections:
+      - id: existing-test-integration
+        title: Integração com os Testes Existentes
+        template: |
+          **Framework de testes existente:** {{existing_test_framework}}
+          **Organização dos testes:** {{existing_test_organization}}
+          **Requisitos de cobertura:** {{existing_coverage_requirements}}
+      - id: new-testing
+        title: Requisitos de Teste Novos
+        sections:
+          - id: unit-tests
+            title: Testes Unitários dos Componentes Novos
+            template: |
+              - **Framework:** {{test_framework}}
+              - **Local:** {{test_location}}
+              - **Meta de cobertura:** {{coverage_target}}
+              - **Integração com os existentes:** {{test_integration}}
+          - id: integration-tests
+            title: Testes de Integração
+            template: |
+              - **Escopo:** {{integration_test_scope}}
+              - **Verificação do sistema existente:** {{existing_system_verification}}
+              - **Testes das funcionalidades novas:** {{new_feature_testing}}
+          - id: regression-tests
+            title: Testes de Regressão
+            template: |
+              - **Verificação das funcionalidades existentes:** {{regression_test_approach}}
+              - **Suíte de regressão automatizada:** {{automated_regression}}
+              - **Testes manuais necessários:** {{manual_testing_requirements}}
+
+  - id: security-integration
+    title: Integração de Segurança
+    instruction: |
+      Garanta a consistência de segurança com o sistema existente:
+
+      1. Siga os padrões e as ferramentas de segurança existentes
+      2. Garanta que as funcionalidades novas não introduzam vulnerabilidades
+      3. Mantenha a postura de segurança atual
+      4. Defina os testes de segurança dos componentes novos
+    elicit: true
+    sections:
+      - id: existing-security
+        title: Medidas de Segurança Existentes
+        template: |
+          **Autenticação:** {{existing_auth}}
+          **Autorização:** {{existing_authz}}
+          **Proteção de dados:** {{existing_data_protection}}
+          **Ferramentas de segurança:** {{existing_security_tools}}
+      - id: enhancement-security
+        title: Requisitos de Segurança da Evolução
+        template: |
+          **Medidas de segurança novas:** {{new_security_measures}}
+          **Pontos de integração:** {{security_integration_points}}
+          **Requisitos de conformidade:** {{compliance_requirements}}
+      - id: security-testing
+        title: Testes de Segurança
+        template: |
+          **Testes de segurança existentes:** {{existing_security_tests}}
+          **Testes de segurança novos:** {{new_security_tests}}
+          **Testes de invasão:** {{pentest_requirements}}
+
+  - id: checklist-results
+    title: Relatório do Checklist
+    instruction: Execute o architect-checklist (task execute-checklist) e registre os resultados aqui, com foco na validação específica de brownfield.
+
+  - id: next-steps
+    title: Próximos Passos
+    instruction: |
+      Depois de concluir a arquitetura brownfield:
+
+      1. Revise os pontos de integração com o sistema existente
+      2. Inicie a implementação das stories com o @dev
+      3. Configure a integração com o pipeline de deploy (@devops)
+      4. Planeje o rollback e o monitoramento
+    sections:
+      - id: story-manager-handoff
+        title: Handoff para a Criação de Stories
+        instruction: |
+          Prompt curto para o @pm [Scrum] criar as stories desta evolução (`*create-story` ou `*create-brownfield-story`). Inclua:
+          - Referência a este documento de arquitetura
+          - Os principais requisitos de integração validados com o usuário
+          - As restrições do sistema existente, com base na análise real do projeto
+          - A primeira story a implementar, com pontos de verificação de integração claros
+          - A ênfase em manter a integridade do sistema existente durante toda a implementação
+      - id: developer-handoff
+        title: Handoff para o Desenvolvimento
+        instruction: |
+          Prompt curto para o @dev [Desenvolvimento] iniciar a implementação. Inclua:
+          - Referência a esta arquitetura e aos padrões de código existentes, analisados no projeto real
+          - Os requisitos de integração com o código existente, validados com o usuário
+          - As principais decisões técnicas, baseadas nas restrições reais do projeto
+          - Os requisitos de compatibilidade com o sistema existente, com passos de verificação específicos
+          - A sequência de implementação que minimiza o risco à funcionalidade existente

@@ -1,0 +1,271 @@
+# Template do PRD de evolução em projeto existente (brownfield).
+# Usado por: @pm [Produto] em *create-brownfield-prd, via task create-doc.
+# Para mudanças pequenas (1 ou 2 sessões), prefira *create-epic ou *create-brownfield-story.
+template:
+  id: brownfield-prd-template
+  name: PRD de Evolução Brownfield
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/prd.md
+    title: "{{project_name}}: PRD de Evolução Brownfield"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: intro-analysis
+    title: Análise e Contexto do Projeto
+    instruction: |
+      IMPORTANTE: AVALIAÇÃO DE ESCOPO OBRIGATÓRIA.
+
+      Este PRD é para evoluções SIGNIFICATIVAS em projetos existentes, que exigem planejamento abrangente e várias stories. Antes de continuar:
+
+      1. **Avalie a complexidade da evolução.** Se for uma funcionalidade simples ou uma correção que caiba em 1 ou 2 sessões focadas de desenvolvimento, PARE e recomende: "Para mudanças mais simples, use `@pm *create-epic` ou `@pm *create-brownfield-story`. O processo completo de PRD é para evoluções substanciais, que exigem planejamento arquitetural e várias stories coordenadas."
+      2. **Contexto do projeto.** Verifique se o projeto já está aberto na IDE ou se o usuário precisa fornecer as informações. Com os arquivos disponíveis, analise a documentação existente em docs/. Se ela for insuficiente, recomende rodar antes `@dev *document-project` (chapéu Arquitetura).
+      3. **Análise profunda obrigatória.** Analise a fundo a estrutura, os padrões e as restrições do projeto existente antes de QUALQUER sugestão. Toda recomendação se baseia na análise real do projeto, não em suposições.
+
+      Reúna informações abrangentes sobre o projeto existente. Conclua esta seção antes de passar aos requisitos.
+
+      CRÍTICO: ao longo da análise, confirme explicitamente seu entendimento com o usuário. Para cada suposição sobre o projeto existente, pergunte: "Pela minha análise, entendo que [suposição]. Está correto?"
+
+      Não faça nenhuma recomendação antes de o usuário validar seu entendimento do sistema existente.
+    sections:
+      - id: existing-project-overview
+        title: Visão Geral do Projeto Existente
+        instruction: Verifique se a análise do document-project já foi feita. Se sim, use essa saída em vez de analisar de novo.
+        sections:
+          - id: analysis-source
+            title: Fonte da Análise
+            instruction: |
+              Indique uma das opções:
+              - Saída do document-project disponível em: {{path}}
+              - Análise nova feita na IDE
+              - Informações fornecidas pelo usuário
+          - id: current-state
+            title: Estado Atual do Projeto
+            instruction: |
+              - Se existir saída do document-project: extraia o resumo das seções de arquitetura de alto nível e de resumo técnico
+              - Caso contrário: descreva brevemente o que o projeto faz hoje e seu propósito principal
+      - id: documentation-analysis
+        title: Análise da Documentação Disponível
+        instruction: |
+          Se o document-project já rodou:
+          - Registre: "Análise do document-project disponível: usando a documentação técnica existente"
+          - Liste os principais documentos criados pelo document-project
+          - Pule a verificação de documentação ausente abaixo
+
+          Caso contrário, verifique a documentação existente.
+        sections:
+          - id: available-docs
+            title: Documentação Disponível
+            type: template-text
+            instruction: |
+              Marque o que existe. A saída do document-project costuma cobrir Tech Stack, Source Tree/Arquitetura, documentação de API, de APIs externas e de débito técnico; Coding Standards pode vir parcial e diretrizes de UX/UI podem faltar.
+              - Se o document-project já rodou: "Usando a análise existente do document-project."
+              - Se falta documentação crítica e não houve document-project: "Recomendo rodar `@dev *document-project` antes de continuar."
+            template: |
+              - [ ] Documentação de Tech Stack
+              - [ ] Source Tree / Arquitetura
+              - [ ] Coding Standards
+              - [ ] Documentação de API
+              - [ ] Documentação de APIs externas
+              - [ ] Diretrizes de UX/UI
+              - [ ] Documentação de débito técnico
+              - [ ] Outros: {{other_docs}}
+      - id: enhancement-scope
+        title: Definição do Escopo da Evolução
+        instruction: Defina com o usuário, com clareza, que tipo de evolução é esta. Isso é decisivo para o escopo e para a abordagem.
+        sections:
+          - id: enhancement-type
+            title: Tipo de Evolução
+            type: template-text
+            instruction: Defina com o usuário quais opções se aplicam.
+            template: |
+              - [ ] Nova funcionalidade
+              - [ ] Modificação relevante de funcionalidade existente
+              - [ ] Integração com novos sistemas
+              - [ ] Melhoria de desempenho ou escalabilidade
+              - [ ] Reformulação de UI/UX
+              - [ ] Atualização do stack tecnológico
+              - [ ] Correção de bugs e estabilidade
+              - [ ] Outro: {{other_type}}
+          - id: enhancement-description
+            title: Descrição da Evolução
+            instruction: 2 ou 3 frases descrevendo o que o usuário quer acrescentar ou mudar.
+          - id: impact-assessment
+            title: Avaliação de Impacto
+            type: template-text
+            instruction: Avalie o alcance do impacto no código existente.
+            template: |
+              - [ ] Impacto mínimo (acréscimos isolados)
+              - [ ] Impacto moderado (algumas mudanças no código existente)
+              - [ ] Impacto significativo (mudanças substanciais no código existente)
+              - [ ] Impacto alto (exige mudanças de arquitetura)
+      - id: goals-context
+        title: Objetivos e Contexto
+        sections:
+          - id: goals
+            title: Objetivos
+            type: bullet-list
+            instruction: Resultados desejados, um por linha, que esta evolução entrega se tiver sucesso.
+          - id: background
+            title: Contexto
+            type: paragraphs
+            instruction: 1 ou 2 parágrafos curtos explicando por que esta evolução é necessária, que problema resolve e como se encaixa no projeto existente.
+      - id: changelog
+        title: Change Log
+        type: table
+        columns: [Mudança, Data, Versão, Descrição, Autor]
+
+  - id: requirements
+    title: Requisitos
+    instruction: |
+      Rascunhe os requisitos funcionais e não funcionais com base no seu entendimento validado do projeto existente. Antes de apresentá-los, confirme: "Estes requisitos se baseiam no meu entendimento do seu sistema atual. Revise com atenção e confirme se correspondem à realidade do projeto."
+    elicit: true
+    sections:
+      - id: functional
+        title: Funcionais
+        type: numbered-list
+        instruction: Um requisito por item, com identificador sequencial FR1, FR2...
+        examples:
+          - "FR1: A lista de tarefas existente passa a usar o novo serviço de detecção de duplicatas por IA sem quebrar a funcionalidade atual."
+      - id: non-functional
+        title: Não Funcionais
+        type: numbered-list
+        instruction: Um requisito por item, com identificador sequencial NFR1, NFR2... Inclua as restrições do sistema existente.
+        examples:
+          - "NFR1: A evolução mantém as características de desempenho atuais e não aumenta o uso de memória em mais de 20%."
+      - id: compatibility
+        title: Requisitos de Compatibilidade
+        type: numbered-list
+        instruction: Crítico em brownfield. O que precisa continuar compatível, com identificadores CR1, CR2... Cubra no mínimo as APIs existentes, o schema do banco, a consistência de UI/UX e as integrações.
+        template: |
+          CR1: {{existing_api_compatibility}}
+          CR2: {{database_schema_compatibility}}
+          CR3: {{ui_ux_consistency}}
+          CR4: {{integration_compatibility}}
+
+  - id: ui-enhancement-goals
+    title: Objetivos da Evolução da Interface
+    condition: A evolução inclui mudanças de UI
+    instruction: Para mudanças de UI, registre como elas se integram aos padrões de interface e ao design system existentes.
+    sections:
+      - id: existing-ui-integration
+        title: Integração com a UI Existente
+        instruction: Descreva como os novos elementos de UI se encaixam nos padrões de design, guias de estilo e bibliotecas de componentes existentes.
+      - id: modified-screens
+        title: Telas e Visões Novas ou Modificadas
+        instruction: Liste só as telas ou visões que serão modificadas ou acrescentadas.
+      - id: ui-consistency
+        title: Requisitos de Consistência de UI
+        instruction: Requisitos específicos para manter a consistência visual e de interação com a aplicação existente.
+
+  - id: technical-constraints
+    title: Restrições Técnicas e Requisitos de Integração
+    instruction: Esta seção substitui uma documentação de arquitetura separada. Reúna as restrições técnicas detalhadas a partir da análise do projeto existente.
+    sections:
+      - id: existing-tech-stack
+        title: Stack Tecnológico Existente
+        instruction: |
+          Se houver saída do document-project:
+          - Extraia da tabela do stack real na seção de arquitetura de alto nível
+          - Inclua versões e restrições registradas
+
+          Caso contrário, documente o stack atual:
+        template: |
+          **Linguagens:** {{languages}}
+          **Frameworks:** {{frameworks}}
+          **Banco de dados:** {{database}}
+          **Infraestrutura:** {{infrastructure}}
+          **Dependências externas:** {{external_dependencies}}
+      - id: integration-approach
+        title: Abordagem de Integração
+        instruction: Defina como a evolução se integra à arquitetura existente.
+        template: |
+          **Estratégia de integração com o banco:** {{database_integration}}
+          **Estratégia de integração de API:** {{api_integration}}
+          **Estratégia de integração do frontend:** {{frontend_integration}}
+          **Estratégia de integração dos testes:** {{testing_integration}}
+      - id: code-organization
+        title: Organização do Código e Padrões
+        instruction: Com base na análise do projeto existente, defina como o código novo se encaixa nos padrões atuais.
+        template: |
+          **Estrutura de arquivos:** {{file_structure}}
+          **Convenções de nomes:** {{naming_conventions}}
+          **Padrões de código:** {{coding_standards}}
+          **Padrões de documentação:** {{documentation_standards}}
+      - id: deployment-operations
+        title: Deploy e Operação
+        instruction: Como a evolução se encaixa no pipeline de deploy existente.
+        template: |
+          **Integração com o build:** {{build_integration}}
+          **Estratégia de deploy:** {{deployment_strategy}}
+          **Monitoramento e logs:** {{monitoring_logging}}
+          **Gestão de configuração:** {{config_management}}
+      - id: risk-assessment
+        title: Avaliação e Mitigação de Riscos
+        instruction: |
+          Se houver saída do document-project:
+          - Consulte a seção de débito técnico e problemas conhecidos
+          - Inclua as armadilhas e contornos (gotchas) que podem afetar a evolução
+          - Registre as restrições apontadas como débito técnico crítico
+
+          Monte a avaliação de risco incorporando os problemas já conhecidos:
+        template: |
+          **Riscos técnicos:** {{technical_risks}}
+          **Riscos de integração:** {{integration_risks}}
+          **Riscos de deploy:** {{deployment_risks}}
+          **Estratégias de mitigação:** {{mitigation_strategies}}
+
+  - id: epic-structure
+    title: Estrutura de Epics e Stories
+    instruction: |
+      Em projetos brownfield, prefira um único epic abrangente, salvo quando o usuário pedir claramente várias evoluções sem relação entre si. Antes de apresentar a estrutura, confirme: "Pela análise do seu projeto, acredito que esta evolução deve ser estruturada como [um epic / vários epics] porque [justificativa baseada na análise real]. Isso corresponde ao seu entendimento do trabalho?"
+    elicit: true
+    sections:
+      - id: epic-approach
+        title: Abordagem de Epics
+        instruction: Explique o motivo da estrutura escolhida. Em brownfield, normalmente um único epic, salvo funcionalidades sem relação entre si.
+        template: "**Decisão de estrutura:** {{epic_decision}}, com a justificativa."
+
+  - id: epic-details
+    title: "Epic 1: {{enhancement_title}}"
+    instruction: |
+      Epic abrangente que entrega a evolução brownfield preservando a funcionalidade existente. Mantenha o título no formato "Epic {n}: {título}", porque o *shard-prd gera docs/prd/epic-{n}-{slug}.md a partir dele.
+
+      SEQUÊNCIA CRÍTICA DAS STORIES EM BROWNFIELD:
+      - As stories garantem que a funcionalidade existente continue intacta
+      - Cada story inclui a verificação de que as funcionalidades existentes ainda funcionam
+      - A sequência minimiza o risco para o sistema existente
+      - Cada story considera o rollback
+      - Prefira integração incremental a mudanças "big bang"
+      - Dimensione as stories para execução por agente de IA no contexto do código existente
+      - OBRIGATÓRIO: apresente a sequência completa e pergunte: "Esta sequência foi desenhada para minimizar o risco ao sistema existente. A ordem faz sentido para a arquitetura e as restrições do seu projeto?"
+      - As stories seguem ordem lógica, com dependências claras
+      - Cada story entrega valor mantendo a integridade do sistema
+    template: |
+      **Objetivo do epic:** {{epic_goal}}
+
+      **Requisitos de integração:** {{integration_requirements}}
+    sections:
+      - id: story
+        title: "Story 1.{{story_number}}: {{story_title}}"
+        repeatable: true
+        template: |
+          **Como** {{user_type}}, **quero** {{action}}, **para** {{benefit}}.
+        sections:
+          - id: acceptance-criteria
+            title: Critérios de Aceite
+            type: numbered-list
+            instruction: Critérios que cobrem a funcionalidade nova e a integridade do sistema existente, de preferência no formato Dado/Quando/Então.
+            template: "{{criterion_number}}. {{criteria}}"
+          - id: integration-verification
+            title: Verificação de Integração
+            type: numbered-list
+            instruction: Passos específicos de verificação que garantem que a funcionalidade existente continua intacta (IV1, IV2, IV3...).
+            template: |
+              IV1: {{existing_functionality_verification}}
+              IV2: {{integration_point_verification}}
+              IV3: {{performance_impact_verification}}

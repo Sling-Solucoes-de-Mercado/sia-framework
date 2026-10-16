@@ -468,7 +468,11 @@ describe('OrderService', () => {
 | Testes (componente) | Testing Library | ^14.0.0 | Testes de componente                       |
 | Testes (E2E)        | Playwright      | ^1.41.0 | Testes ponta a ponta                       |
 | Mock de API         | MSW             | ^2.1.0  | Mock Service Worker                        |
-| Banco               | Prisma          | ^5.9.0  | ORM com tipos                              |
+| Banco, Auth e Storage | Supabase (Postgres) | supabase-js ^2 | Dados com RLS, autenticação e arquivos |
+| Supabase no servidor | @supabase/ssr  | latest  | Cliente em Server Components, Route Handlers e Proxy |
+| CLI do banco        | Supabase CLI    | latest  | Migrations versionadas e tipos gerados (`supabase gen types`) |
+
+> **Banco no SIA:** use o cliente `supabase-js` com RLS e migrations versionadas em `supabase/migrations/` (chapéu Dados do `@dev`). ORMs que conectam com papel privilegiado, como o Prisma, ignoram o RLS; use-os só com essa ressalva registrada em ADR.
 
 ### Dependências necessárias
 
@@ -478,11 +482,12 @@ npm install next react react-dom typescript
 npm install tailwindcss postcss autoprefixer
 npm install @tanstack/react-query zustand
 npm install react-hook-form @hookform/resolvers zod
+npm install @supabase/supabase-js @supabase/ssr
 
 # Desenvolvimento
 npm install -D vitest @testing-library/react @testing-library/jest-dom
 npm install -D @playwright/test msw
-npm install -D prisma @types/node @types/react
+npm install -D supabase @types/node @types/react
 ```
 
 ---

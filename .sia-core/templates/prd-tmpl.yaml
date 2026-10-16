@@ -1,0 +1,203 @@
+# Template do PRD de produto novo (greenfield).
+# Usado por: @pm [Produto] em *create-prd, via task create-doc.
+# Fragmentação (*shard-prd): cada seção ## vira um arquivo; "Epic {n}: {título}" vira docs/prd/epic-{n}-{slug}.md.
+template:
+  id: prd-template
+  name: Documento de Requisitos do Produto (PRD)
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/prd.md
+    title: "{{project_name}}: Documento de Requisitos do Produto (PRD)"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: goals-context
+    title: Objetivos e Contexto
+    instruction: |
+      Pergunte se existe um Project Brief (docs/brief.md). Se não existir, recomende fortemente criá-lo antes com `*create-project-brief`: ele dá a base essencial (problema, usuários-alvo, métricas de sucesso, escopo do MVP e restrições). Se o usuário insistir no PRD sem brief, levante essas informações nesta seção.
+      Se o brief existir, use-o para preencher Objetivos e Contexto, deixando claro o que entra e o que fica fora do MVP. Isso é decisivo para os requisitos. Inclua a tabela de Change Log.
+    sections:
+      - id: goals
+        title: Objetivos
+        type: bullet-list
+        instruction: Resultados desejados, um por linha, que o PRD entrega se tiver sucesso (desejos do usuário e do projeto).
+      - id: background
+        title: Contexto
+        type: paragraphs
+        instruction: 1 ou 2 parágrafos curtos com o contexto, sem repetir os objetivos. Que problema isto resolve e por quê, e qual é o cenário ou a necessidade atual (o que se aprendeu no brief).
+      - id: changelog
+        title: Change Log
+        type: table
+        columns: [Data, Versão, Descrição, Autor]
+        instruction: Registre as versões e as mudanças do documento.
+
+  - id: requirements
+    title: Requisitos
+    instruction: Rascunhe os requisitos funcionais e não funcionais nas duas subseções abaixo. Os identificadores (FR, NFR) são a base da rastreabilidade de specs e stories (Artigo IV da Constitution).
+    elicit: true
+    sections:
+      - id: functional
+        title: Funcionais
+        type: numbered-list
+        instruction: Um requisito por item, com identificador sequencial FR1, FR2, FR3...
+        examples:
+          - "FR6: A lista de tarefas usa IA para detectar e alertar sobre tarefas possivelmente duplicadas, mesmo com redação diferente."
+      - id: non-functional
+        title: Não Funcionais
+        type: numbered-list
+        instruction: Um requisito por item, com identificador sequencial NFR1, NFR2, NFR3...
+        examples:
+          - "NFR1: O uso de serviços em nuvem deve ficar dentro dos limites dos planos gratuitos sempre que possível."
+
+  - id: ui-goals
+    title: Objetivos de Design da Interface
+    condition: O PRD tem requisitos de UX/UI
+    instruction: |
+      Registre a visão de UX/UI em alto nível, para orientar o @dev [UX/UI] e a criação das stories. Passos:
+
+      1. Preencha todas as subseções com suposições fundamentadas no contexto do projeto
+      2. Apresente a seção completa ao usuário
+      3. Diga claramente onde fez suposições
+      4. Faça perguntas objetivas sobre pontos vagos, ausentes ou que pedem mais detalhe
+      5. Isto NÃO é a especificação detalhada de UI: foque na visão do produto e nos objetivos do usuário
+    elicit: true
+    choices:
+      accessibility: [Nenhuma, WCAG AA, WCAG AAA]
+      platforms: [Web Responsiva, Somente Mobile, Somente Desktop, Multiplataforma]
+    sections:
+      - id: ux-vision
+        title: Visão Geral de UX
+      - id: interaction-paradigms
+        title: Paradigmas de Interação
+      - id: core-screens
+        title: Telas e Visões Principais
+        instruction: Do ponto de vista do produto, quais telas ou visões são indispensáveis para entregar o valor e os objetivos do PRD? Visão conceitual e de alto nível, para orientar os epics e as stories.
+        examples:
+          - Tela de login
+          - Dashboard principal
+          - Página de detalhe do item
+          - Página de configurações
+      - id: accessibility
+        title: "Acessibilidade: {Nenhuma|WCAG AA|WCAG AAA|Requisitos próprios}"
+        instruction: O padrão do SIA é WCAG AA. Registre se o projeto exigir outro nível.
+      - id: branding
+        title: Identidade Visual
+        instruction: Há elementos de marca ou guias de estilo conhecidos que precisam ser incorporados?
+        examples:
+          - "Reproduzir a estética do cinema preto e branco do início do século XX, com efeitos animados de filme danificado ou falha de projetor nas transições de página ou de estado."
+          - "Em anexo, a paleta completa de cores e os tokens da identidade corporativa."
+      - id: target-platforms
+        title: "Dispositivos e Plataformas-Alvo: {Web Responsiva|Somente Mobile|Somente Desktop|Multiplataforma}"
+        examples:
+          - Web responsiva e todas as plataformas mobile
+          - Somente iPhone
+          - Desktop Windows em modo texto
+
+  - id: technical-assumptions
+    title: Premissas Técnicas
+    instruction: |
+      Reúna as decisões técnicas que vão orientar a arquitetura (@dev [Arquitetura]). Passos:
+
+      1. Leia .sia-core/data/technical-preferences.md (stack padrão do SIA e preferências do projeto) ou o arquivo de preferências anexado, e use-o para pré-preencher as escolhas
+      2. Pergunte sobre linguagens, frameworks, templates iniciais, bibliotecas, APIs e alvos de deploy
+      3. Para o que for desconhecido, oriente com base nos objetivos e no escopo do MVP
+      4. Documente TODAS as escolhas com a justificativa (por que a escolha serve ao projeto)
+      5. Estas escolhas viram restrições para a arquitetura: seja específico e completo
+    elicit: true
+    choices:
+      repository: [Monorepo, Polyrepo]
+      architecture: [Monólito, Microsserviços, Serverless]
+      testing: [Somente unitários, Unitários + integração, Pirâmide de testes completa]
+    sections:
+      - id: repository-structure
+        title: "Estrutura do Repositório: {Monorepo|Polyrepo|Multi-repo}"
+      - id: service-architecture
+        title: Arquitetura de Serviços
+        instruction: "DECISÃO CRÍTICA: documente a arquitetura de serviços em alto nível (ex.: monólito, microsserviços, funções serverless dentro de um monorepo)."
+      - id: testing-requirements
+        title: Requisitos de Teste
+        instruction: "DECISÃO CRÍTICA: documente os requisitos de teste (só unitários, integração, e2e, testes manuais) e a necessidade de utilitários que facilitem o teste manual."
+      - id: additional-assumptions
+        title: Premissas Técnicas Adicionais e Solicitações
+        instruction: Ao longo de todo o documento, sempre que surgir outra premissa técnica relevante para a arquitetura, acrescente-a aqui como item de lista.
+
+  - id: epic-list
+    title: Lista de Epics
+    instruction: |
+      Apresente a lista de todos os epics para aprovação do usuário: título e objetivo em uma frase para cada um. Assim o usuário revisa a estrutura geral antes dos detalhes.
+
+      CRÍTICO: os epics DEVEM seguir uma sequência lógica, conforme boas práticas ágeis:
+
+      - Cada epic entrega um incremento significativo, de ponta a ponta, implantável e testável
+      - O Epic 1 estabelece a infraestrutura base (setup do app, Git, CI/CD, serviços centrais), salvo quando se trata de funcionalidade nova em app existente, e já entrega uma primeira funcionalidade, nem que seja uma rota de health check ou uma página canário simples. Lembre-se disso ao criar as stories do primeiro epic.
+      - Cada epic seguinte se apoia nos anteriores e entrega blocos de funcionalidade com valor tangível para o usuário ou o negócio ao ser implantado
+      - Nem todo projeto precisa de vários epics, mas todo epic precisa entregar valor. Ex.: uma API concluída entrega valor mesmo sem a UI, que pode ficar para outro epic.
+      - Prefira menos epics. Explique o motivo ao usuário e ofereça opções de divisão quando algum parecer grande demais ou disperso
+      - Preocupações transversais atravessam epics e stories desde o início; nunca ficam para o fim. Ex.: adicionar logging na última story de um epic, ou num epic final, seria péssimo, porque o projeto ficaria sem logging desde o começo.
+    elicit: true
+    examples:
+      - "Epic 1: Fundação e Infraestrutura Central: setup do projeto, autenticação e gestão básica de usuários"
+      - "Epic 2: Entidades Centrais do Negócio: criar e gerenciar os principais objetos do domínio (CRUD)"
+      - "Epic 3: Fluxos e Interações do Usuário: habilitar as principais jornadas e processos de negócio"
+      - "Epic 4: Relatórios e Análises: oferecer insights e visualização de dados aos usuários"
+
+  - id: epic-details
+    title: "Epic {{epic_number}}: {{epic_title}}"
+    repeatable: true
+    instruction: |
+      Depois que a lista de epics for aprovada, apresente cada epic com todas as suas stories e critérios de aceite como uma unidade completa de revisão.
+
+      Para cada epic, escreva o objetivo expandido: 2 ou 3 frases sobre o objetivo e o valor que as stories vão entregar. Use exatamente o título "Epic {n}: {título}", porque o *shard-prd gera docs/prd/epic-{n}-{slug}.md a partir dele.
+
+      REQUISITOS CRÍTICOS DE SEQUÊNCIA DAS STORIES:
+
+      - As stories de cada epic DEVEM seguir uma sequência lógica
+      - Cada story é uma "fatia vertical" que entrega funcionalidade completa, exceto as stories iniciais de fundação do projeto
+      - Nenhuma story depende de trabalho de uma story ou epic posterior
+      - Identifique e anote as stories pré-requisito diretas
+      - Foque no "o quê" e no "por quê", não no "como" (a implementação fica com o @dev [Arquitetura]), mas com precisão suficiente para sustentar a ordem lógica entre as stories
+      - Cada story entrega valor claro ao usuário ou ao negócio. Evite stories só de habilitação: embuta-as em stories que entregam valor
+      - Dimensione as stories para execução por agente de IA: cada story cabe numa única sessão focada de um agente, sem estourar o contexto
+      - Pense em "um dev júnior trabalhando de 2 a 4 horas": stories pequenas, focadas e autossuficientes
+      - Se uma story parecer complexa, divida-a mais, desde que continue sendo uma fatia vertical
+    elicit: true
+    template: "{{epic_goal}}"
+    sections:
+      - id: story
+        title: "Story {{epic_number}}.{{story_number}}: {{story_title}}"
+        repeatable: true
+        template: |
+          **Como** {{user_type}}, **quero** {{action}}, **para** {{benefit}}.
+        sections:
+          - id: acceptance-criteria
+            title: Critérios de Aceite
+            type: numbered-list
+            repeatable: true
+            template: "{{criterion_number}}. {{criteria}}"
+            instruction: |
+              Defina critérios de aceite claros, completos e testáveis, de preferência no formato Dado/Quando/Então, que:
+
+              - Definam com precisão o que é "pronto" do ponto de vista funcional
+              - Sejam inequívocos e sirvam de base para a verificação
+              - Incluam os requisitos não funcionais críticos do PRD
+              - Considerem a testabilidade local de componentes de backend e de dados
+              - Especifiquem requisitos de UX/UI e de aderência ao framework, quando aplicável
+              - Evitem preocupações transversais que pertencem a outras stories ou a outras seções do PRD
+
+  - id: checklist-results
+    title: Relatório do Checklist
+    instruction: Antes de rodar o checklist e redigir os prompts, ofereça gerar o PRD completo e atualizado. Se o usuário aceitar, confirme que em seguida vai rodar o checklist e produzir o relatório. Com a confirmação, execute o pm-checklist (task execute-checklist) e registre os resultados nesta seção.
+
+  - id: next-steps
+    title: Próximos Passos
+    sections:
+      - id: ux-prompt
+        title: Prompt para UX/UI
+        instruction: Prompt curto e direto para o @dev [UX/UI] iniciar a especificação de interface (`*create-front-end-spec`) usando este documento como entrada.
+      - id: architect-prompt
+        title: Prompt para Arquitetura
+        instruction: Prompt curto e direto para o @dev [Arquitetura] iniciar a arquitetura (`*create-architecture`) usando este documento como entrada.

@@ -1,0 +1,642 @@
+# Template da arquitetura de backend/serviço (projeto sem interface relevante, ou com arquitetura de frontend separada).
+# Usado por: @dev [Arquitetura] em *create-backend-architecture, via task create-doc.
+# Os títulos "Tech Stack", "Source Tree" e "Coding Standards" são fixos: o *shard-doc gera tech-stack.md,
+# source-tree.md e coding-standards.md em docs/architecture/, que o @dev sempre carrega (devLoadAlwaysFiles).
+template:
+  id: architecture-template
+  name: Documento de Arquitetura
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/architecture.md
+    title: "{{project_name}}: Documento de Arquitetura"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: introduction
+    title: Introdução
+    instruction: |
+      Se houver, revise os documentos relevantes fornecidos antes de começar, para reunir todo o contexto. Se não encontrar no mínimo o docs/prd.md, pergunte ao usuário quais documentos vão embasar a arquitetura.
+    sections:
+      - id: intro-content
+        template: |
+          Este documento descreve a arquitetura geral de {{project_name}}, incluindo sistemas de backend, serviços compartilhados e aspectos que não são específicos de UI. O objetivo principal é servir de guia arquitetural para o desenvolvimento conduzido por IA, garantindo consistência e aderência aos padrões e tecnologias escolhidos.
+
+          **Relação com a arquitetura de frontend:**
+          Se o projeto tem interface relevante, um documento separado de arquitetura de frontend (docs/front-end-architecture.md) detalha o design específico do frontend e DEVE ser usado em conjunto com este. As escolhas centrais de tecnologia registradas aqui (ver "Tech Stack") valem para o projeto inteiro, inclusive para os componentes de frontend.
+      - id: starter-template
+        title: Template Inicial ou Projeto Existente
+        instruction: |
+          Antes de avançar no desenho da arquitetura, verifique se o projeto parte de um template inicial ou de um código existente:
+
+          1. Procure no PRD e no brief menções a:
+             - Templates iniciais (ex.: Create React App, Next.js, Vue CLI, Angular CLI)
+             - Projetos ou códigos existentes usados como base
+             - Projetos boilerplate ou ferramentas de scaffolding
+             - Projetos anteriores a clonar ou adaptar
+
+          2. Se houver template inicial ou projeto existente:
+             - Peça acesso ao usuário por um destes meios: link da documentação do template, arquivos do projeto (em projetos pequenos) ou link do repositório (GitHub, GitLab etc.)
+             - Analise o template ou o projeto para entender: stack e versões pré-configuradas; estrutura e organização; scripts e ferramentas incluídos; padrões e convenções de arquitetura existentes; limitações e restrições impostas
+             - Use essa análise para orientar e alinhar as decisões de arquitetura
+
+          3. Se nenhum template for mencionado e o projeto for greenfield:
+             - Sugira templates iniciais adequados às preferências de stack (data/technical-preferences.md e o preset ativo)
+             - Explique os benefícios (setup mais rápido, boas práticas, suporte da comunidade)
+             - Deixe a decisão com o usuário
+
+          4. Se o usuário confirmar que não vai usar template:
+             - Siga com o desenho da arquitetura do zero
+             - Registre que todo o ferramental e a configuração serão montados manualmente
+
+          Documente a decisão aqui antes de seguir. Se não houver template, escreva N/A.
+        elicit: true
+      - id: changelog
+        title: Change Log
+        type: table
+        columns: [Data, Versão, Descrição, Autor]
+        instruction: Registre as versões e as mudanças do documento.
+
+  - id: high-level-architecture
+    title: Arquitetura de Alto Nível
+    instruction: Esta seção tem várias subseções que formam a base da arquitetura. Apresente todas juntas, de uma vez.
+    elicit: true
+    sections:
+      - id: technical-summary
+        title: Resumo Técnico
+        instruction: |
+          Escreva um parágrafo curto (3 a 5 frases) com:
+          - O estilo geral de arquitetura do sistema
+          - Os principais componentes e suas relações
+          - As principais escolhas de tecnologia
+          - Os padrões de arquitetura centrais
+          - Como esta arquitetura atende aos objetivos do PRD
+      - id: high-level-overview
+        title: Visão de Alto Nível
+        instruction: |
+          Com base nas Premissas Técnicas do PRD, descreva:
+
+          1. O estilo principal de arquitetura (ex.: monólito, microsserviços, serverless, orientado a eventos)
+          2. A decisão de estrutura do repositório no PRD (monorepo ou polyrepo)
+          3. A decisão de arquitetura de serviços no PRD
+          4. O fluxo principal de interação do usuário ou de dados, em nível conceitual
+          5. As principais decisões de arquitetura e seus motivos
+      - id: project-diagram
+        title: Diagrama de Alto Nível do Projeto
+        type: code
+        instruction: |
+          Bloco de código `mermaid` (graph) que visualiza a arquitetura de alto nível. Considere:
+          - Limites do sistema
+          - Componentes e serviços principais
+          - Direção dos fluxos de dados
+          - Integrações externas
+          - Pontos de entrada dos usuários
+      - id: architectural-patterns
+        title: Padrões de Arquitetura e de Design
+        instruction: |
+          Liste os padrões de alto nível que vão guiar a arquitetura. Para cada padrão:
+
+          1. Apresente 2 ou 3 opções viáveis, quando houver
+          2. Dê sua recomendação com justificativa clara
+          3. Obtenha a confirmação do usuário antes de fechar
+          4. Alinhe os padrões às premissas técnicas do PRD e aos objetivos do projeto
+
+          Padrões comuns a considerar:
+          - Estilo de arquitetura (serverless, orientado a eventos, microsserviços, CQRS, hexagonal)
+          - Organização do código (injeção de dependência, repository, módulos, factory)
+          - Dados (event sourcing, saga, banco por serviço)
+          - Comunicação (REST, GraphQL, filas de mensagens, pub/sub)
+
+          Decisões estruturais relevantes viram ADR (`*create-adr`) antes da implementação.
+        template: "- **{{pattern_name}}:** {{pattern_description}}. _Justificativa:_ {{rationale}}"
+        examples:
+          - "**Arquitetura serverless:** AWS Lambda para o processamento. _Justificativa:_ atende ao requisito do PRD de otimizar custos e escalar automaticamente"
+          - "**Padrão Repository:** abstrai a lógica de acesso a dados. _Justificativa:_ facilita os testes e uma futura migração de banco"
+          - "**Comunicação orientada a eventos:** SNS/SQS para desacoplar os serviços. _Justificativa:_ suporta processamento assíncrono e resiliência do sistema"
+
+  - id: tech-stack
+    title: Tech Stack
+    instruction: |
+      Esta é a seleção DEFINITIVA de tecnologia. Faça escolhas específicas com o usuário:
+
+      1. Revise as premissas técnicas do PRD e as preferências em .sia-core/data/technical-preferences.md (stack padrão do SIA e preset ativo) ou no arquivo de preferências anexado
+      2. Para cada categoria, apresente 2 ou 3 opções viáveis com prós e contras
+      3. Faça uma recomendação clara, com base nas necessidades do projeto
+      4. Obtenha a aprovação explícita do usuário para cada escolha
+      5. Registre versões exatas: evite "latest" e fixe versões específicas
+      6. Esta tabela é a fonte única da verdade: os outros documentos se referem a estas escolhas
+
+      Decisões a fechar. Antes de mostrar a tabela, confirme que conhece cada uma ou pergunte ao usuário; se ele não tiver certeza, ofereça sugestões com justificativa:
+      - Templates iniciais (se houver)
+      - Linguagens e runtimes, com versões exatas
+      - Frameworks, bibliotecas e pacotes
+      - Provedor de nuvem e principais serviços
+      - Banco de dados e armazenamento (se não estiver claro, sugira SQL, NoSQL ou outro tipo, conforme o projeto e o provedor)
+      - Ferramentas de desenvolvimento
+
+      Ao mostrar a tabela, deixe claro ao usuário a importância destas escolhas, procure lacunas ou discordâncias, peça esclarecimento sobre itens cuja presença não esteja clara e já solicite feedback: mostre essa mensagem e as opções antes de passar a vez ao usuário.
+      O *shard-doc gera docs/architecture/tech-stack.md a partir desta seção.
+    elicit: true
+    sections:
+      - id: cloud-infrastructure
+        title: Infraestrutura de Nuvem
+        template: |
+          - **Provedor:** {{cloud_provider}}
+          - **Serviços principais:** {{core_services_list}}
+          - **Regiões de deploy:** {{regions}}
+      - id: technology-stack-table
+        title: Tabela do Stack Tecnológico
+        type: table
+        columns: [Categoria, Tecnologia, Versão, Propósito, Justificativa]
+        instruction: Preencha a tabela com todas as tecnologias relevantes.
+        examples:
+          - "| **Linguagem** | TypeScript | 5.3.3 | Linguagem principal de desenvolvimento | Tipagem forte, ótimo ferramental, experiência do time |"
+          - "| **Runtime** | Node.js | 20.11.0 | Runtime JavaScript | Versão LTS, desempenho estável, ecossistema amplo |"
+          - "| **Framework** | NestJS | 10.3.2 | Framework de backend | Pronto para uso corporativo, boa injeção de dependência, alinhado aos padrões do time |"
+
+  - id: data-models
+    title: Modelos de Dados
+    instruction: |
+      Defina os modelos de dados e entidades centrais:
+
+      1. Revise os requisitos do PRD e identifique as entidades de negócio
+      2. Para cada modelo, explique o propósito e as relações
+      3. Inclua os atributos principais e os tipos de dados
+      4. Mostre as relações entre os modelos
+      5. Discuta as decisões de design com o usuário
+
+      Feche um modelo conceitual claro antes de passar ao schema do banco.
+    elicit: true
+    repeatable: true
+    sections:
+      - id: model
+        title: "{{model_name}}"
+        template: |
+          **Propósito:** {{model_purpose}}
+
+          **Atributos principais:**
+          - {{attribute_1}}: {{type_1}}: {{description_1}}
+          - {{attribute_2}}: {{type_2}}: {{description_2}}
+
+          **Relações:**
+          - {{relationship_1}}
+          - {{relationship_2}}
+
+  - id: components
+    title: Componentes
+    instruction: |
+      Com base nos padrões de arquitetura, no Tech Stack e nos modelos de dados acima:
+
+      1. Identifique os principais componentes lógicos ou serviços e suas responsabilidades
+      2. Considere a estrutura de repositório definida no PRD (monorepo ou polyrepo)
+      3. Defina limites e interfaces claros entre os componentes
+      4. Para cada componente, especifique:
+         - Responsabilidade principal
+         - Interfaces e APIs expostas
+         - Dependências de outros componentes
+         - Detalhes de tecnologia conforme o Tech Stack
+
+      5. Crie diagramas de componentes quando ajudarem
+    elicit: true
+    sections:
+      - id: component-list
+        repeatable: true
+        title: "{{component_name}}"
+        template: |
+          **Responsabilidade:** {{component_description}}
+
+          **Interfaces principais:**
+          - {{interface_1}}
+          - {{interface_2}}
+
+          **Dependências:** {{dependencies}}
+
+          **Tecnologia:** {{component_tech_details}}
+      - id: component-diagrams
+        title: Diagramas de Componentes
+        type: code
+        instruction: |
+          Blocos de código `mermaid` que visualizam as relações entre componentes. Opções:
+          - Diagrama de containers C4 para a visão geral
+          - Diagrama de componentes para a estrutura interna
+          - Diagramas de sequência para interações complexas
+          Escolha o mais claro para cada caso.
+
+  - id: external-apis
+    title: APIs Externas
+    condition: O projeto exige integração com APIs externas
+    instruction: |
+      Para cada integração com serviço externo:
+
+      1. Identifique as APIs necessárias com base nos requisitos do PRD e no desenho dos componentes
+      2. Se não souber as URLs de documentação, peça os detalhes ao usuário
+      3. Documente os métodos de autenticação e as considerações de segurança
+      4. Liste os endpoints específicos que serão usados
+      5. Registre limites de uso (rate limits) e restrições
+
+      Se nenhuma API externa for necessária, diga isso explicitamente e siga para a próxima seção.
+    elicit: true
+    repeatable: true
+    sections:
+      - id: api
+        title: "API {{api_name}}"
+        template: |
+          - **Propósito:** {{api_purpose}}
+          - **Documentação:** {{api_docs_url}}
+          - **URL(s) base:** {{api_base_url}}
+          - **Autenticação:** {{auth_method}}
+          - **Limites de uso:** {{rate_limits}}
+
+          **Endpoints usados:**
+          - `{{method}} {{endpoint_path}}`: {{endpoint_purpose}}
+
+          **Notas de integração:** {{integration_considerations}}
+
+  - id: core-workflows
+    title: Fluxos Principais
+    type: code
+    instruction: |
+      Ilustre os fluxos-chave do sistema com diagramas de sequência (blocos de código `mermaid`, sequenceDiagram):
+
+      1. Identifique as jornadas críticas do usuário no PRD
+      2. Mostre as interações entre componentes, incluindo APIs externas
+      3. Inclua os caminhos de tratamento de erro
+      4. Documente as operações assíncronas
+      5. Crie diagramas de alto nível e detalhados, conforme a necessidade
+
+      Foque nos fluxos que esclarecem decisões de arquitetura ou interações complexas.
+    elicit: true
+
+  - id: rest-api-spec
+    title: Especificação da API REST
+    condition: O projeto inclui API REST
+    type: code
+    instruction: |
+      Se o projeto inclui API REST, escreva um bloco de código `yaml`:
+
+      1. Crie a especificação OpenAPI 3.0
+      2. Inclua todos os endpoints dos epics e stories
+      3. Defina os schemas de requisição e resposta com base nos modelos de dados
+      4. Documente os requisitos de autenticação
+      5. Inclua exemplos de requisição e resposta
+
+      Sem API REST, pule esta seção.
+    elicit: true
+    template: |
+      openapi: 3.0.0
+      info:
+        title: {{api_title}}
+        version: {{api_version}}
+        description: {{api_description}}
+      servers:
+        - url: {{server_url}}
+          description: {{server_description}}
+
+  - id: database-schema
+    title: Schema do Banco de Dados
+    instruction: |
+      Transforme os modelos conceituais em schemas concretos de banco:
+
+      1. Use o(s) tipo(s) de banco escolhido(s) no Tech Stack
+      2. Crie as definições de schema na notação adequada
+      3. Inclua índices, restrições e relações
+      4. Considere desempenho e escalabilidade
+      5. Em NoSQL, mostre a estrutura dos documentos
+
+      Apresente o schema no formato adequado ao tipo de banco (DDL SQL, JSON Schema etc.). O detalhamento de DDL, RLS e migrations fica com o @dev [Dados] (`*db-model`).
+    elicit: true
+
+  - id: source-tree
+    title: Source Tree
+    type: code
+    instruction: |
+      Bloco de código `plaintext` com a estrutura de pastas do projeto, refletindo:
+
+      1. A estrutura de repositório escolhida (monorepo ou polyrepo)
+      2. A arquitetura de serviços (monólito, microsserviços, serverless)
+      3. O stack e as linguagens selecionados
+      4. A organização dos componentes definida acima
+      5. As boas práticas dos frameworks escolhidos
+      6. Separação clara de responsabilidades
+
+      Adapte a estrutura às necessidades do projeto: em monorepos, mostre a separação dos serviços; em serverless, a organização das funções. Inclua as convenções de cada linguagem. O *shard-doc gera docs/architecture/source-tree.md a partir desta seção.
+    elicit: true
+    examples:
+      - |
+        project-root/
+        ├── packages/
+        │   ├── api/                    # serviço de API (backend)
+        │   ├── web/                    # aplicação de frontend
+        │   ├── shared/                 # utilitários e tipos compartilhados
+        │   └── infrastructure/         # definições de IaC
+        ├── scripts/                    # scripts de gestão do monorepo
+        └── package.json                # package.json raiz, com workspaces
+
+  - id: infrastructure-deployment
+    title: Infraestrutura e Deploy
+    instruction: |
+      Defina a arquitetura e as práticas de deploy:
+
+      1. Use a ferramenta de IaC escolhida no Tech Stack
+      2. Escolha a estratégia de deploy adequada à arquitetura
+      3. Defina os ambientes e o fluxo de promoção
+      4. Estabeleça os procedimentos de rollback
+      5. Considere segurança, monitoramento e otimização de custos
+
+      Peça a opinião do usuário sobre preferências de deploy e ferramenta de CI/CD. A execução de deploy e a configuração de CI/CD são exclusivas do @devops (`*configure-ci`, `*vercel-deploy`).
+    elicit: true
+    sections:
+      - id: infrastructure-as-code
+        title: Infraestrutura como Código
+        template: |
+          - **Ferramenta:** {{iac_tool}} {{version}}
+          - **Local:** `{{iac_directory}}`
+          - **Abordagem:** {{iac_approach}}
+      - id: deployment-strategy
+        title: Estratégia de Deploy
+        template: |
+          - **Estratégia:** {{deployment_strategy}}
+          - **Plataforma de CI/CD:** {{cicd_platform}}
+          - **Configuração do pipeline:** `{{pipeline_config_location}}`
+      - id: environments
+        title: Ambientes
+        repeatable: true
+        template: "- **{{env_name}}:** {{env_purpose}}. {{env_details}}"
+      - id: promotion-flow
+        title: Fluxo de Promoção entre Ambientes
+        type: code
+        instruction: Bloco de código `text` com o diagrama do fluxo de promoção.
+        template: "{{promotion_flow_diagram}}"
+      - id: rollback-strategy
+        title: Estratégia de Rollback
+        template: |
+          - **Método principal:** {{rollback_method}}
+          - **Gatilhos:** {{rollback_triggers}}
+          - **Objetivo de tempo de recuperação (RTO):** {{rto}}
+
+  - id: error-handling-strategy
+    title: Estratégia de Tratamento de Erros
+    instruction: |
+      Defina uma abordagem completa de tratamento de erros:
+
+      1. Escolha os padrões adequados à linguagem e ao framework do Tech Stack
+      2. Defina os padrões e as ferramentas de log
+      3. Estabeleça as categorias de erro e as regras de tratamento
+      4. Considere as necessidades de observabilidade e de depuração
+      5. Garanta a segurança: nenhum dado sensível nos logs
+
+      Esta seção orienta desenvolvedores humanos e de IA a tratar erros de forma consistente.
+    elicit: true
+    sections:
+      - id: general-approach
+        title: Abordagem Geral
+        template: |
+          - **Modelo de erro:** {{error_model}}
+          - **Hierarquia de exceções:** {{exception_structure}}
+          - **Propagação de erros:** {{propagation_rules}}
+      - id: logging-standards
+        title: Padrões de Log
+        template: |
+          - **Biblioteca:** {{logging_library}} {{version}}
+          - **Formato:** {{log_format}}
+          - **Níveis:** {{log_levels_definition}}
+          - **Contexto obrigatório:**
+            - ID de correlação: {{correlation_id_format}}
+            - Contexto do serviço: {{service_context}}
+            - Contexto do usuário: {{user_context_rules}}
+      - id: error-patterns
+        title: Padrões de Tratamento de Erros
+        sections:
+          - id: external-api-errors
+            title: Erros de APIs Externas
+            template: |
+              - **Política de retentativa:** {{retry_strategy}}
+              - **Circuit breaker:** {{circuit_breaker_config}}
+              - **Timeouts:** {{timeout_settings}}
+              - **Tradução de erros:** {{error_mapping_rules}}
+          - id: business-logic-errors
+            title: Erros de Regra de Negócio
+            template: |
+              - **Exceções próprias:** {{business_exception_types}}
+              - **Erros exibidos ao usuário:** {{user_error_format}}
+              - **Códigos de erro:** {{error_code_system}}
+          - id: data-consistency
+            title: Consistência de Dados
+            template: |
+              - **Estratégia de transações:** {{transaction_approach}}
+              - **Lógica de compensação:** {{compensation_patterns}}
+              - **Idempotência:** {{idempotency_approach}}
+
+  - id: coding-standards
+    title: Coding Standards
+    instruction: |
+      Estes padrões são OBRIGATÓRIOS para os agentes de IA. Defina com o usuário SÓ as regras críticas para evitar código ruim. Explique que:
+
+      1. Esta seção controla diretamente o comportamento do @dev
+      2. Ela deve ser mínima: assuma que a IA conhece as boas práticas gerais
+      3. O foco são convenções e armadilhas específicas do projeto
+      4. Padrões detalhados demais incham o contexto e atrasam o desenvolvimento
+      5. O *shard-doc extrai esta seção para docs/architecture/coding-standards.md, que o @dev carrega sempre
+
+      Para cada padrão, obtenha a confirmação explícita do usuário de que ele é necessário.
+    elicit: true
+    sections:
+      - id: core-standards
+        title: Padrões Centrais
+        template: |
+          - **Linguagens e runtimes:** {{languages_and_versions}}
+          - **Estilo e lint:** {{linter_config}}
+          - **Organização dos testes:** {{test_file_convention}}
+      - id: naming-conventions
+        title: Convenções de Nomes
+        type: table
+        columns: [Elemento, Convenção, Exemplo]
+        instruction: Inclua só o que diverge do padrão da linguagem.
+      - id: critical-rules
+        title: Regras Críticas
+        instruction: |
+          Liste SÓ as regras que a IA poderia violar ou que são exigências específicas do projeto. Exemplos:
+          - "Nunca use console.log em código de produção: use o logger"
+          - "Toda resposta de API usa o tipo ApiResponse"
+          - "Consultas ao banco passam pelo padrão repository, nunca pelo ORM direto"
+
+          Evite regras óbvias como "use SOLID" ou "escreva código limpo".
+        repeatable: true
+        template: "- **{{rule_name}}:** {{rule_description}}"
+      - id: language-specifics
+        title: Diretrizes por Linguagem
+        condition: São necessárias regras críticas específicas de linguagem
+        instruction: Acrescente SÓ se for crítico para evitar erros da IA. A maioria dos times não precisa desta seção.
+        sections:
+          - id: language-rules
+            title: "Particularidades de {{language_name}}"
+            repeatable: true
+            template: "- **{{rule_topic}}:** {{rule_detail}}"
+
+  - id: test-strategy
+    title: Estratégia e Padrões de Teste
+    instruction: |
+      Defina com o usuário uma estratégia de testes completa:
+
+      1. Use os frameworks de teste do Tech Stack
+      2. Decida entre TDD e teste depois do código
+      3. Defina a organização e a nomenclatura dos testes
+      4. Estabeleça metas de cobertura
+      5. Defina a infraestrutura dos testes de integração
+      6. Planeje os dados de teste e as dependências externas
+
+      O básico vai para Coding Standards, que o @dev carrega. Esta seção detalhada é referência para o @pm [Qualidade] e para o time (ver data/test-levels-framework.md e data/test-priorities-matrix.md).
+    elicit: true
+    sections:
+      - id: testing-philosophy
+        title: Filosofia de Testes
+        template: |
+          - **Abordagem:** {{test_approach}}
+          - **Metas de cobertura:** {{coverage_targets}}
+          - **Pirâmide de testes:** {{test_distribution}}
+      - id: test-types
+        title: Tipos e Organização dos Testes
+        sections:
+          - id: unit-tests
+            title: Testes Unitários
+            template: |
+              - **Framework:** {{unit_test_framework}} {{version}}
+              - **Convenção de arquivos:** {{unit_test_naming}}
+              - **Local:** {{unit_test_location}}
+              - **Biblioteca de mocks:** {{mocking_library}}
+              - **Cobertura exigida:** {{unit_coverage}}
+
+              **Requisitos para os agentes de IA:**
+              - Gerar testes para todos os métodos públicos
+              - Cobrir casos de borda e condições de erro
+              - Seguir o padrão AAA (Arrange, Act, Assert)
+              - Fazer mock de todas as dependências externas
+          - id: integration-tests
+            title: Testes de Integração
+            template: |
+              - **Escopo:** {{integration_scope}}
+              - **Local:** {{integration_test_location}}
+              - **Infraestrutura de teste:**
+                - **{{dependency_name}}:** {{test_approach}} ({{test_tool}})
+            examples:
+              - "**Banco de dados:** H2 em memória nos testes unitários, PostgreSQL via Testcontainers na integração"
+              - "**Fila de mensagens:** Kafka embarcado nos testes"
+              - "**APIs externas:** WireMock para stubs"
+          - id: e2e-tests
+            title: Testes de Ponta a Ponta
+            template: |
+              - **Framework:** {{e2e_framework}} {{version}}
+              - **Escopo:** {{e2e_scope}}
+              - **Ambiente:** {{e2e_environment}}
+              - **Dados de teste:** {{e2e_data_strategy}}
+      - id: test-data-management
+        title: Gestão de Dados de Teste
+        template: |
+          - **Estratégia:** {{test_data_approach}}
+          - **Fixtures:** {{fixture_location}}
+          - **Factories:** {{factory_pattern}}
+          - **Limpeza:** {{cleanup_strategy}}
+      - id: continuous-testing
+        title: Testes Contínuos
+        template: |
+          - **Integração com CI:** {{ci_test_stages}}
+          - **Testes de desempenho:** {{perf_test_approach}}
+          - **Testes de segurança:** {{security_test_approach}}
+
+  - id: security
+    title: Segurança
+    instruction: |
+      Defina os requisitos de segurança OBRIGATÓRIOS para desenvolvedores humanos e de IA:
+
+      1. Foque em regras de implementação
+      2. Use as ferramentas de segurança do Tech Stack
+      3. Defina padrões claros para os cenários comuns
+      4. Estas regras afetam diretamente a geração de código
+      5. Garanta completude sem redundância, junto com o usuário
+    elicit: true
+    sections:
+      - id: input-validation
+        title: Validação de Entrada
+        template: |
+          - **Biblioteca de validação:** {{validation_library}}
+          - **Onde validar:** {{where_to_validate}}
+          - **Regras obrigatórias:**
+            - Toda entrada externa DEVE ser validada
+            - Validação na fronteira da API, antes do processamento
+            - Prefira lista de permissões a lista de bloqueios
+      - id: auth-authorization
+        title: Autenticação e Autorização
+        template: |
+          - **Método de autenticação:** {{auth_implementation}}
+          - **Gestão de sessão:** {{session_approach}}
+          - **Padrões obrigatórios:**
+            - {{auth_pattern_1}}
+            - {{auth_pattern_2}}
+      - id: secrets-management
+        title: Gestão de Segredos
+        template: |
+          - **Desenvolvimento:** {{dev_secrets_approach}}
+          - **Produção:** {{prod_secrets_service}}
+          - **Requisitos de código:**
+            - NUNCA coloque segredos no código
+            - Acesse segredos só pelo serviço de configuração
+            - Nenhum segredo em logs ou mensagens de erro
+      - id: api-security
+        title: Segurança de API
+        template: |
+          - **Limitação de taxa (rate limiting):** {{rate_limit_implementation}}
+          - **Política de CORS:** {{cors_configuration}}
+          - **Cabeçalhos de segurança:** {{required_headers}}
+          - **HTTPS obrigatório:** {{https_approach}}
+      - id: data-protection
+        title: Proteção de Dados
+        template: |
+          - **Criptografia em repouso:** {{encryption_at_rest}}
+          - **Criptografia em trânsito:** {{encryption_in_transit}}
+          - **Tratamento de dados pessoais:** {{pii_rules}}
+          - **Restrições de log:** {{what_not_to_log}}
+      - id: dependency-security
+        title: Segurança de Dependências
+        template: |
+          - **Ferramenta de varredura:** {{dependency_scanner}}
+          - **Política de atualização:** {{update_frequency}}
+          - **Aprovação de novas dependências:** {{new_dep_process}}
+      - id: security-testing
+        title: Testes de Segurança
+        template: |
+          - **SAST:** {{static_analysis}}
+          - **DAST:** {{dynamic_analysis}}
+          - **Testes de invasão:** {{pentest_schedule}}
+
+  - id: checklist-results
+    title: Relatório do Checklist
+    instruction: Antes de rodar o checklist, ofereça gerar o documento de arquitetura completo. Com a confirmação do usuário, execute o architect-checklist (task execute-checklist) e registre os resultados aqui.
+
+  - id: next-steps
+    title: Próximos Passos
+    instruction: |
+      Depois de concluir a arquitetura:
+
+      1. Se o projeto tem componentes de UI:
+         - Siga para a arquitetura de frontend: `@dev *create-front-end-architecture`
+         - Use este documento como entrada
+
+      2. Para todos os projetos:
+         - Revisão de Product Owner: `@pm *po-checklist`
+         - Fragmentação e stories: `@pm *shard-doc docs/architecture.md docs/architecture` e `@pm *create-story`; depois, `@dev *develop`
+         - Infraestrutura: `@devops *environment-bootstrap` e `@devops *configure-ci`
+
+      3. Inclua prompts específicos para os próximos agentes, se necessário.
+    sections:
+      - id: frontend-architecture-prompt
+        title: Prompt para a Arquitetura de Frontend
+        condition: O projeto tem componentes de UI
+        instruction: |
+          Prompt curto para o @dev [Arquitetura] criar a arquitetura de frontend (`*create-front-end-architecture`). Inclua:
+          - Referência a este documento de arquitetura
+          - Os principais requisitos de UI do PRD
+          - As decisões específicas de frontend tomadas aqui
+          - O pedido da arquitetura de frontend detalhada

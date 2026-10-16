@@ -1,0 +1,182 @@
+# Template da arquitetura de frontend, que complementa a arquitetura principal (docs/architecture.md).
+# Usado por: @dev [Arquitetura] em *create-front-end-architecture, via task create-doc.
+# Os títulos "Tech Stack", "Source Tree" e "Coding Standards" seguem a convenção de fragmentação (seção 5.3 do guia).
+# O Tech Stack deste documento acompanha o da arquitetura principal, que é a fonte da verdade.
+template:
+  id: front-end-architecture-template
+  name: Documento de Arquitetura de Frontend
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/front-end-architecture.md
+    title: "{{project_name}}: Documento de Arquitetura de Frontend"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: template-framework-selection
+    title: Seleção de Template e Framework
+    instruction: |
+      Revise os documentos fornecidos: PRD (docs/prd.md), especificação de UI/UX (docs/front-end-spec.md) e arquitetura principal (docs/architecture.md). Foque em extrair os detalhes de implementação de que as ferramentas de frontend com IA e o @dev precisam. Peça ao usuário os documentos que não encontrar.
+
+      Antes de desenhar a arquitetura de frontend, verifique se o projeto usa um template inicial de frontend ou um código existente:
+
+      1. Procure no PRD, na arquitetura principal e no brief menções a:
+         - Templates iniciais de frontend (ex.: Create React App, Next.js, Vite, Vue CLI, Angular CLI)
+         - Kits de UI ou starters de bibliotecas de componentes
+         - Projetos de frontend existentes usados como base
+         - Templates de painel administrativo ou outros starters especializados
+         - Implementações de design system
+
+      2. Se houver template ou projeto existente:
+         - Peça acesso ao usuário: link da documentação do template, arquivos do projeto (em projetos pequenos) ou link do repositório
+         - Analise o template ou o projeto para entender: dependências e versões instaladas; estrutura de pastas e organização dos arquivos; componentes e utilitários incluídos; abordagem de estilo (CSS Modules, styled-components, Tailwind etc.); gerência de estado (se houver); configuração de rotas; setup e padrões de teste; scripts de build e de desenvolvimento
+         - Use essa análise para alinhar a arquitetura de frontend aos padrões do template
+
+      3. Se nenhum template for mencionado e a UI for nova, confirme a linguagem e o framework de UI:
+         - Com base no framework, sugira starters adequados:
+           - React: Next.js, Vite + React
+           - Vue: Nuxt.js, Vite + Vue
+           - Angular: Angular CLI
+           - Ou templates de UI populares, quando fizer sentido
+         - Explique os benefícios específicos para o frontend
+         - No SIA, o padrão é Next.js + React + TypeScript + Tailwind CSS + shadcn/ui (data/technical-preferences.md)
+
+      4. Se o usuário confirmar que não vai usar template:
+         - Registre que todo o ferramental, o bundling e a configuração serão montados manualmente
+         - Siga com a arquitetura de frontend do zero
+
+      Documente a decisão sobre o template inicial e as restrições que ela impõe antes de seguir.
+    sections:
+      - id: changelog
+        title: Change Log
+        type: table
+        columns: [Data, Versão, Descrição, Autor]
+        instruction: Registre as versões e as mudanças do documento.
+
+  - id: frontend-tech-stack
+    title: Tech Stack
+    instruction: Extraia da tabela de stack da arquitetura principal (docs/architecture.md). Esta seção DEVE ficar sincronizada com ela; qualquer divergência se resolve na arquitetura principal.
+    elicit: true
+    sections:
+      - id: tech-stack-table
+        title: Tabela do Stack Tecnológico
+        type: table
+        columns: [Categoria, Tecnologia, Versão, Propósito, Justificativa]
+        instruction: |
+          Preencha as escolhas adequadas ao framework selecionado e aos requisitos do projeto, uma linha por categoria, nesta ordem: Framework, Biblioteca de UI, Gerência de estado, Roteamento, Ferramenta de build, Estilo, Testes, Biblioteca de componentes, Formulários, Animação, Ferramentas de desenvolvimento.
+        examples:
+          - "| Framework | {{framework}} | {{version}} | {{purpose}} | {{why_chosen}} |"
+
+  - id: project-structure
+    title: Source Tree
+    type: code
+    instruction: Bloco de código `plaintext` com a estrutura exata de pastas para as ferramentas de IA, conforme o framework escolhido. Seja específico sobre onde vai cada tipo de arquivo. Siga as boas práticas e convenções do framework.
+    elicit: true
+
+  - id: component-standards
+    title: Padrões de Componentes
+    instruction: Defina os padrões exatos de criação de componentes conforme o framework escolhido.
+    elicit: true
+    sections:
+      - id: component-template
+        title: Template de Componente
+        type: code
+        instruction: Bloco de código `typescript` com um template de componente mínimo, mas completo, nas boas práticas do framework. Inclua tipos TypeScript, imports corretos e a estrutura básica.
+      - id: naming-conventions
+        title: Convenções de Nomes
+        instruction: Convenções de nomes específicas do framework para componentes, arquivos, serviços, gerência de estado e demais elementos da arquitetura.
+
+  - id: state-management
+    title: Gerência de Estado
+    instruction: Defina os padrões de gerência de estado conforme o framework escolhido.
+    elicit: true
+    sections:
+      - id: store-structure
+        title: Estrutura das Stores
+        type: code
+        instruction: Bloco de código `plaintext` com a estrutura de pastas da gerência de estado adequada ao framework e à solução escolhida.
+      - id: state-template
+        title: Template de Gerência de Estado
+        type: code
+        instruction: Bloco de código `typescript` com um template ou exemplo básico de gerência de estado nos padrões recomendados do framework. Inclua tipos TypeScript e as operações comuns de definir, atualizar e limpar o estado.
+
+  - id: api-integration
+    title: Integração com a API
+    instruction: Defina os padrões de serviço de API conforme o framework escolhido.
+    elicit: true
+    sections:
+      - id: service-template
+        title: Template de Serviço
+        type: code
+        instruction: Bloco de código `typescript` com um template de serviço de API nas convenções do framework. Inclua tipos TypeScript, tratamento de erros e padrões assíncronos.
+      - id: api-client-config
+        title: Configuração do Cliente de API
+        type: code
+        instruction: Bloco de código `typescript` mostrando como configurar o cliente HTTP no framework escolhido, incluindo interceptors ou middleware de autenticação e tratamento de erros.
+
+  - id: routing
+    title: Rotas
+    instruction: Defina a estrutura e os padrões de rotas conforme o framework escolhido.
+    elicit: true
+    sections:
+      - id: route-configuration
+        title: Configuração das Rotas
+        type: code
+        instruction: Bloco de código `typescript` com a configuração de rotas adequada ao framework. Inclua padrões de rota protegida, carregamento sob demanda quando aplicável e guards ou middleware de autenticação.
+
+  - id: styling-guidelines
+    title: Diretrizes de Estilo
+    instruction: Defina a abordagem de estilo conforme o framework escolhido.
+    elicit: true
+    sections:
+      - id: styling-approach
+        title: Abordagem de Estilo
+        instruction: Descreva a metodologia de estilo adequada ao framework (CSS Modules, styled-components, Tailwind etc.) e os padrões básicos.
+      - id: global-theme
+        title: Variáveis Globais de Tema
+        type: code
+        instruction: Bloco de código `css` com um sistema de tema em CSS custom properties (variáveis CSS) que funcione em qualquer framework. Inclua cores, espaçamento, tipografia, sombras e suporte a modo escuro.
+
+  - id: testing-requirements
+    title: Requisitos de Teste
+    instruction: Defina os requisitos mínimos de teste conforme o framework escolhido.
+    elicit: true
+    sections:
+      - id: component-test-template
+        title: Template de Teste de Componente
+        type: code
+        instruction: Bloco de código `typescript` com um template básico de teste de componente, usando a biblioteca de testes recomendada para o framework. Inclua exemplos de teste de renderização, de interação do usuário e de mocks.
+      - id: testing-best-practices
+        title: Boas Práticas de Teste
+        type: numbered-list
+        template: |
+          1. **Testes unitários:** teste componentes individuais isoladamente
+          2. **Testes de integração:** teste a interação entre componentes
+          3. **Testes E2E:** teste os fluxos críticos do usuário (com Cypress ou Playwright)
+          4. **Metas de cobertura:** busque 80% de cobertura de código
+          5. **Estrutura dos testes:** padrão Arrange-Act-Assert
+          6. **Mock de dependências externas:** chamadas de API, rotas e gerência de estado
+
+  - id: environment-configuration
+    title: Configuração de Ambiente
+    instruction: Liste as variáveis de ambiente necessárias conforme o framework escolhido, com o formato e as convenções de nome do framework. Nunca coloque valores reais de segredos.
+    elicit: true
+
+  - id: frontend-developer-standards
+    title: Coding Standards
+    sections:
+      - id: critical-coding-rules
+        title: Regras Críticas de Código
+        instruction: Liste as regras essenciais que evitam erros comuns da IA, tanto as universais quanto as específicas do framework.
+        elicit: true
+      - id: quick-reference
+        title: Referência Rápida
+        instruction: |
+          Monte uma cola específica do framework com:
+          - Comandos comuns (servidor de desenvolvimento, build, testes)
+          - Padrões de import mais usados
+          - Convenções de nomes de arquivo
+          - Padrões e utilitários próprios do projeto

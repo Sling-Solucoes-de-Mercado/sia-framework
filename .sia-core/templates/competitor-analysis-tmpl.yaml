@@ -1,0 +1,287 @@
+# Template de análise de concorrentes.
+# Usado por: @pm [Análise] em *competitor-analysis, via task create-doc.
+template:
+  id: competitor-analysis-template
+  name: Relatório de Análise de Concorrentes
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/competitor-analysis.md
+    title: "Análise de Concorrentes: {{project_product_name}}"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+  custom_elicitation:
+    title: Ações de elicitação da análise de concorrentes
+    options:
+      - Aprofundar a estratégia de um concorrente específico
+      - Analisar a dinâmica competitiva em um segmento específico
+      - Simular as respostas dos concorrentes aos seus movimentos
+      - Explorar cenários de parceria em vez de competição
+      - Testar as alegações de diferenciação
+      - Analisar o potencial de disrupção (seu ou deles)
+      - Comparar com a competição em mercados adjacentes
+      - Gerar insights de ganhos e perdas (win/loss)
+      - "Se ao menos soubéssemos do [plano do concorrente X]..."
+      - Seguir para a próxima seção
+
+sections:
+  - id: executive-summary
+    title: Resumo Executivo
+    instruction: Apresente os principais insights competitivos, as maiores ameaças e oportunidades e as ações estratégicas recomendadas. Escreva esta seção POR ÚLTIMO, depois de concluir toda a análise.
+
+  - id: analysis-scope
+    title: Escopo e Metodologia da Análise
+    instruction: Este template guia uma análise completa de concorrentes. Comece entendendo as necessidades de inteligência competitiva e os objetivos estratégicos do usuário. Ajude-o a identificar e priorizar os concorrentes antes de entrar na análise detalhada.
+    sections:
+      - id: analysis-purpose
+        title: Propósito da Análise
+        instruction: |
+          Defina o propósito principal:
+          - Avaliação de entrada em novo mercado
+          - Estratégia de posicionamento do produto
+          - Análise de lacunas de funcionalidades
+          - Definição de estratégia de preços
+          - Alvos de parceria ou aquisição
+          - Avaliação de ameaças competitivas
+      - id: competitor-categories
+        title: Categorias de Concorrentes Analisadas
+        instruction: |
+          Liste as categorias incluídas:
+          - Concorrentes diretos: mesmo produto ou serviço, mesmo mercado-alvo
+          - Concorrentes indiretos: produto diferente, mesma necessidade ou problema
+          - Concorrentes potenciais: podem entrar no mercado com facilidade
+          - Produtos substitutos: soluções alternativas
+          - Concorrentes de referência: exemplos de melhor da categoria
+      - id: research-methodology
+        title: Metodologia da Pesquisa
+        instruction: |
+          Descreva a abordagem:
+          - Fontes de informação usadas
+          - Período da análise
+          - Níveis de confiança
+          - Limitações
+
+  - id: competitive-landscape
+    title: Visão Geral do Cenário Competitivo
+    sections:
+      - id: market-structure
+        title: Estrutura do Mercado
+        instruction: |
+          Descreva o ambiente competitivo:
+          - Número de concorrentes ativos
+          - Concentração do mercado (fragmentado ou consolidado)
+          - Dinâmica competitiva
+          - Entradas e saídas recentes no mercado
+      - id: prioritization-matrix
+        title: Matriz de Priorização de Concorrentes
+        instruction: |
+          Ajude a classificar os concorrentes por participação de mercado e nível de ameaça estratégica.
+
+          Monte uma matriz 2x2:
+          - Prioridade 1 (concorrentes centrais): alta participação + alta ameaça
+          - Prioridade 2 (ameaças emergentes): baixa participação + alta ameaça
+          - Prioridade 3 (players estabelecidos): alta participação + baixa ameaça
+          - Prioridade 4 (só monitorar): baixa participação + baixa ameaça
+
+  - id: competitor-profiles
+    title: Perfis Individuais dos Concorrentes
+    instruction: Crie perfis detalhados para cada concorrente de Prioridade 1 e 2. Para Prioridade 3 e 4, perfis resumidos.
+    repeatable: true
+    sections:
+      - id: competitor
+        title: "{{competitor_name}}: Prioridade {{priority_level}}"
+        sections:
+          - id: company-overview
+            title: Visão Geral da Empresa
+            template: |
+              - **Fundação:** {{year_founders}}
+              - **Sede:** {{location}}
+              - **Porte:** {{employees_revenue}}
+              - **Investimento:** {{total_raised_investors}}
+              - **Liderança:** {{key_executives}}
+          - id: business-model
+            title: Modelo de Negócio e Estratégia
+            template: |
+              - **Modelo de receita:** {{revenue_model}}
+              - **Mercado-alvo:** {{customer_segments}}
+              - **Proposta de valor:** {{value_promise}}
+              - **Estratégia de go-to-market:** {{gtm_approach}}
+              - **Foco estratégico:** {{current_priorities}}
+          - id: product-analysis
+            title: Análise de Produto ou Serviço
+            template: |
+              - **Ofertas principais:** {{main_products}}
+              - **Funcionalidades-chave:** {{standout_capabilities}}
+              - **Experiência do usuário:** {{ux_assessment}}
+              - **Stack tecnológico:** {{tech_stack}}
+              - **Preços:** {{pricing_model}}
+          - id: strengths-weaknesses
+            title: Forças e Fraquezas
+            sections:
+              - id: strengths
+                title: Forças
+                type: bullet-list
+                template: "- {{strength}}"
+              - id: weaknesses
+                title: Fraquezas
+                type: bullet-list
+                template: "- {{weakness}}"
+          - id: market-position
+            title: Posição de Mercado e Desempenho
+            template: |
+              - **Participação de mercado:** {{market_share_estimate}}
+              - **Base de clientes:** {{customer_size_notables}}
+              - **Trajetória de crescimento:** {{growth_trend}}
+              - **Novidades recentes:** {{key_news}}
+
+  - id: comparative-analysis
+    title: Análise Comparativa
+    sections:
+      - id: feature-comparison
+        title: Matriz de Comparação de Funcionalidades
+        type: table
+        columns: ["Categoria / Funcionalidade", "{{your_company}}", "{{competitor_1}}", "{{competitor_2}}", "{{competitor_3}}"]
+        instruction: |
+          Monte uma tabela detalhada comparando as funcionalidades-chave entre os concorrentes, agrupadas por categoria (uma linha de título por categoria, seguida das funcionalidades):
+          - Funcionalidades centrais: funcionalidade A, funcionalidade B (status de cada concorrente)
+          - Experiência do usuário: app mobile (nota), tempo de onboarding
+          - Integração e ecossistema: API disponível, quantidade de integrações de terceiros
+          - Preços e planos: preço inicial, plano gratuito (sim/não)
+        examples:
+          - "| **Funcionalidades centrais** | | | | |"
+          - "| Funcionalidade A | {{status}} | {{status}} | {{status}} | {{status}} |"
+          - "| Plano gratuito | {{yes_no}} | {{yes_no}} | {{yes_no}} | {{yes_no}} |"
+      - id: swot-comparison
+        title: Comparação SWOT
+        instruction: Crie a análise SWOT da sua solução em relação aos principais concorrentes.
+        sections:
+          - id: your-solution
+            title: Sua Solução
+            template: |
+              - **Forças:** {{strengths}}
+              - **Fraquezas:** {{weaknesses}}
+              - **Oportunidades:** {{opportunities}}
+              - **Ameaças:** {{threats}}
+          - id: vs-competitor
+            title: "Contra {{main_competitor}}"
+            template: |
+              - **Vantagens competitivas:** {{your_advantages}}
+              - **Desvantagens competitivas:** {{their_advantages}}
+              - **Oportunidades de diferenciação:** {{differentiation}}
+      - id: positioning-map
+        title: Mapa de Posicionamento
+        instruction: |
+          Descreva a posição dos concorrentes nas dimensões-chave.
+
+          Monte a descrição usando 2 dimensões relevantes para o mercado, por exemplo:
+          - Preço versus funcionalidades
+          - Facilidade de uso versus poder
+          - Especialização versus amplitude
+          - Self-service versus atendimento próximo
+
+  - id: strategic-analysis
+    title: Análise Estratégica
+    sections:
+      - id: competitive-advantages
+        title: Avaliação de Vantagens Competitivas
+        sections:
+          - id: sustainable-advantages
+            title: Vantagens Sustentáveis
+            instruction: |
+              Identifique fossos e posições defensáveis:
+              - Efeitos de rede
+              - Custos de troca
+              - Força da marca
+              - Barreiras tecnológicas
+              - Vantagens regulatórias
+          - id: vulnerable-points
+            title: Pontos Vulneráveis
+            instruction: |
+              Onde os concorrentes podem ser desafiados:
+              - Segmentos de clientes mal atendidos
+              - Funcionalidades ausentes
+              - Experiência do usuário fraca
+              - Preços altos
+              - Presença geográfica limitada
+      - id: blue-ocean
+        title: Oportunidades de Oceano Azul
+        instruction: |
+          Identifique espaços de mercado sem disputa.
+
+          Liste oportunidades de criar novo espaço de mercado:
+          - Segmentos mal atendidos
+          - Casos de uso não atendidos
+          - Novos modelos de negócio
+          - Expansão geográfica
+          - Propostas de valor diferentes
+
+  - id: strategic-recommendations
+    title: Recomendações Estratégicas
+    sections:
+      - id: differentiation-strategy
+        title: Estratégia de Diferenciação
+        instruction: |
+          Como se posicionar frente aos concorrentes:
+          - Propostas de valor únicas a enfatizar
+          - Funcionalidades a priorizar
+          - Segmentos a atacar
+          - Mensagem e posicionamento
+      - id: competitive-response
+        title: Planejamento de Resposta Competitiva
+        sections:
+          - id: offensive-strategies
+            title: Estratégias Ofensivas
+            instruction: |
+              Como ganhar participação de mercado:
+              - Explorar as fraquezas dos concorrentes
+              - Vencer disputas comerciais diretas
+              - Conquistar os clientes deles
+          - id: defensive-strategies
+            title: Estratégias Defensivas
+            instruction: |
+              Como proteger sua posição:
+              - Fortalecer as áreas vulneráveis
+              - Aumentar os custos de troca
+              - Aprofundar o relacionamento com os clientes
+      - id: partnership-ecosystem
+        title: Estratégia de Parcerias e Ecossistema
+        instruction: |
+          Oportunidades de colaboração:
+          - Players complementares
+          - Parceiros de canal
+          - Integrações tecnológicas
+          - Alianças estratégicas
+
+  - id: monitoring-plan
+    title: Plano de Monitoramento e Inteligência
+    sections:
+      - id: key-competitors
+        title: Concorrentes a Acompanhar
+        instruction: Lista priorizada, com justificativa.
+      - id: monitoring-metrics
+        title: Métricas de Monitoramento
+        instruction: |
+          O que acompanhar:
+          - Atualizações de produto
+          - Mudanças de preço
+          - Clientes ganhos e perdidos
+          - Rodadas de investimento, fusões e aquisições
+          - Mensagem de mercado
+      - id: intelligence-sources
+        title: Fontes de Inteligência
+        instruction: |
+          Onde coletar inteligência de forma contínua:
+          - Sites e blogs das empresas
+          - Avaliações de clientes
+          - Relatórios do setor
+          - Redes sociais
+          - Registros de patentes
+      - id: update-cadence
+        title: Cadência de Atualização
+        instruction: |
+          Calendário de revisão recomendado:
+          - Semanal: {{weekly_items}}
+          - Mensal: {{monthly_items}}
+          - Trimestral: {{quarterly_analysis}}

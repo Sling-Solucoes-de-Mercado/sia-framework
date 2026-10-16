@@ -108,6 +108,8 @@ Qualidade não é negociável. Todo código passa por gates antes do merge.
 
 Projetos sem algum desses scripts registram a ausência no pre-push; o gate considera apenas os scripts existentes.
 
+EXCEÇÃO: um diff sem código de produto (só documentação, `.sia-core/`, `squads/` ou arquivos operacionais do `@devops`) não exige story `Done`; o pre-push registra "story: não se aplica" e pede a confirmação do usuário.
+
 **Gate:** `pre-push.md` bloqueia (BLOCK) se qualquer verificação falhar.
 
 ---

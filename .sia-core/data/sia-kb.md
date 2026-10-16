@@ -84,7 +84,7 @@
 | `.sia-core/skills/` | skills do ciclo da story (`sia-full-sdc`, `sia-develop-story`...) |
 | `.sia-core/hooks/` | `enforce-git-push-authority.cjs` e `track-active-agent.cjs` |
 | `.sia-core/schemas/` | `squad-schema.json` |
-| `.sia-core/cli/` | CLI `sia` (Node ≥ 18, sem dependências instaladas) |
+| `.sia-core/cli/` | CLI `sia` (Node ≥ 22, sem dependências instaladas) |
 
 Resolução de dependência: `{type}/{name}` → `.sia-core/{type}/{name}`. Num squad, procura primeiro em `squads/{nome}/{type}/`.
 

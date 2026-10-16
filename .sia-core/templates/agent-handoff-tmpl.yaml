@@ -1,0 +1,41 @@
+# Template de handoff entre agentes do SIA.
+# Grave em .sia/handoffs/handoff-{de}-para-{para}-{AAAAMMDD-HHmmss}.yaml ao concluir um comando que encerra
+# uma etapa de workflow (regra agent-handoff). O agente seguinte, na ativação, lê from_agent e last_command,
+# sugere o próximo comando a partir de data/workflow-chains.yaml e marca consumed: true.
+# O handoff substitui a persona completa do agente anterior: carrega só o contexto necessário.
+
+handoff:
+  version: "1.0"
+  timestamp: ""           # ISO 8601 (ex.: 2026-10-16T14:30:00-03:00)
+  from_agent: ""          # id do agente que sai: pm | dev | devops | validator | squad-creator
+  to_agent: ""            # id do agente que entra
+  last_command: ""        # nome do último comando concluído, sem * e sem argumentos (ex.: qa-gate); o storyId vai em story_context
+  consumed: false         # false ao gravar; true quando o agente seguinte exibe a sugestão
+
+  # Story ou task em andamento
+  story_context:
+    story_id: ""          # ex.: 2.1
+    story_path: ""        # ex.: docs/stories/2.1-login-social.story.md
+    story_status: ""      # Draft | Ready | InProgress | InReview | Done
+    current_task: ""      # ex.: Task 3: integração com o provedor OAuth
+    branch: ""            # ex.: feat/2.1-login-social
+
+  # Decisões-chave do agente que sai (máximo 5)
+  decisions:
+    - ""                  # ex.: "Usar o Supabase Auth em vez de sessão própria"
+
+  # Arquivos criados ou modificados pelo agente que sai (máximo 10)
+  files_modified:
+    - ""                  # ex.: "src/app/(auth)/login/page.tsx"
+
+  # Bloqueios ou problemas ativos (máximo 3)
+  blockers:
+    - ""                  # ex.: "Variável SUPABASE_URL ausente no ambiente de preview"
+
+  # O que o agente seguinte deve fazer (até 2 frases)
+  next_action: ""         # ex.: "Rodar o QA gate da story 2.1 com o relatório de inspeção."
+
+# Limites de compactação
+# - Artefato preenchido: menos de 500 tokens (cerca de 375 palavras)
+# - No máximo 5 decisões, 10 arquivos e 3 bloqueios
+# - Resumos retidos na sessão: no máximo 3 (o mais antigo sai na 4ª troca de agente)

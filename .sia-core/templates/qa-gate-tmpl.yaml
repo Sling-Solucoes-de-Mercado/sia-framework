@@ -1,0 +1,131 @@
+# Template do arquivo do QA gate: docs/qa/gates/{storyId}-{slug}.yml
+# Usado por: @pm [Qualidade] em *qa-gate (e a cada iteração do *qa-loop), via task create-doc.
+# Formato verificado pela CLI (`sia sdc verify`): seção 6.2 do guia de autoria.
+# O arquivo gerado tem 15 chaves, nesta ordem, mesmo quando vazias. Não renomeie nem reordene.
+template:
+  id: qa-gate-template
+  name: Arquivo do QA Gate
+  version: 1.0
+  output:
+    format: yaml
+    filename: docs/qa/gates/{{story_id}}-{{story_slug}}.yml
+    title: "QA Gate: Story {{story_id}}"
+
+workflow:
+  mode: non-interactive
+
+sections:
+  - id: rules
+    instruction: |
+      Gere o arquivo depois da revisão da story, com os achados já consolidados: revisão própria, relatório de inspeção do @validator e avaliações de NFR, risco, test design e rastreabilidade, quando existirem.
+
+      1. Caminho: {paths.qaGates}/{storyId}-{slug}.yml (padrão docs/qa/gates/). Use o mesmo slug do arquivo da story. Crie a pasta se não existir.
+      2. Um arquivo por story. Em nova iteração do QA Loop, reescreva o arquivo inteiro e incremente iteration.
+      3. Saída em YAML puro: sem títulos Markdown e sem texto fora das chaves.
+      4. gate e os status de NFR ficam em inglês (identificadores de máquina); textos livres, em português.
+      5. Use aspas simples nos textos livres e nos valores que o YAML leria como número ou data (story, reviewed_revision, updated).
+      6. Depois de gravar, escreva o bloco ## Resultado do QA da story com o mesmo gate, a mesma revisão e o caminho deste arquivo (seção 6.2 do guia).
+
+  - id: identification
+    instruction: |
+      Identificação da story revisada. story é o storyId (ex.: '2.1'); story_title é o título da story.
+    template: |
+      schema: 1
+      story: '{{story_id}}'
+      story_title: '{{story_title}}'
+
+  - id: decision
+    instruction: |
+      gate: veredito final, decidido pela task qa-gate:
+      - PASS: critérios de aceite atendidos, nenhum achado high, cobertura de testes dentro do padrão do projeto
+      - CONCERNS: achados que não bloqueiam; seguem com ciência e viram recomendação ou backlog
+      - FAIL: critério de aceite não atendido ou achado high; a story volta para InProgress com pedido de correção
+      - WAIVED: achados aceitos explicitamente, com motivo e aprovação registrados em waiver
+      Quando o workflow exige inspeção (quality.inspection.requiredBeforeGate), o gate não sai como PASS sem relatório do @validator.
+      status_reason: uma ou duas frases com o motivo do veredito.
+      reviewer: sempre '@pm (Mira) [Qualidade]'.
+      reviewed_revision: hash curto do commit avaliado (`git rev-parse --short HEAD`).
+      updated: data e hora ISO 8601 com fuso.
+    template: |
+      gate: {{gate}}                      # PASS | CONCERNS | FAIL | WAIVED
+      status_reason: '{{status_reason}}'
+      reviewer: '@pm (Mira) [Qualidade]'
+      reviewed_revision: '{{short_sha}}'
+      updated: '{{iso_timestamp}}'
+
+  - id: inspection
+    instruction: |
+      inspection_report: caminho do relatório do @validator usado na decisão (docs/qa/inspections/AAAA-MM-DD-HHmm-{comando}-{escopo}.md). Use '' só quando o workflow não exige inspeção.
+      iteration: número da iteração do QA Loop, a partir de 1 (limite em quality.qaLoop.maxIterations, padrão 5).
+    template: |
+      inspection_report: '{{inspection_report_path}}'
+      iteration: {{iteration}}            # iteração do QA Loop
+
+  - id: issues
+    instruction: |
+      top_issues: os achados mais relevantes; use [] quando não houver. Em cada item:
+      - id: prefixo da categoria + número sequencial (SEC-001, PERF-001...)
+      - severity: somente low, medium ou high (low: menor ou cosmético; medium: corrigir logo, não bloqueia; high: crítico, bloqueia a entrega)
+      - category: conforme o prefixo
+      - finding: o que foi encontrado, com o arquivo quando houver
+      - suggested_action: ação concreta de correção
+
+      | Prefixo | category |
+      |---------|----------|
+      | SEC- | security |
+      | PERF- | performance |
+      | REL- | reliability |
+      | TEST- | tests |
+      | MNT- | maintainability |
+      | ARCH- | architecture |
+      | DOC- | docs |
+      | REQ- | requirements |
+    template: |
+      top_issues:                         # [] quando não houver achados
+        - id: '{{issue_id}}'
+          severity: {{severity}}          # low | medium | high
+          category: {{category}}
+          finding: '{{finding}}'
+          suggested_action: '{{suggested_action}}'
+
+  - id: waiver
+    instruction: |
+      waiver: dispensa formal. Fica active: false, salvo quando o gate é WAIVED; nesse caso, active: true, reason com o motivo e approved_by com quem aprovou a dispensa (a pessoa com autoridade sobre o produto, nomeada). Achado bloqueante do @validator nunca é dispensado (Artigo V), e o modo YOLO nunca decide WAIVED.
+    template: |
+      waiver: { active: false, reason: '', approved_by: '' }
+
+  - id: nfr-validation
+    instruction: |
+      nfr_validation: resultado por atributo não funcional avaliado (no *nfr-assess ou na revisão). Inclua só os atributos avaliados; use {} quando nenhum foi avaliado. Atributos: security, performance, reliability, maintainability. status: PASS | CONCERNS | FAIL; notes com o achado específico.
+    template: |
+      nfr_validation:
+        security: { status: {{status}}, notes: '{{notes}}' }
+        performance: { status: {{status}}, notes: '{{notes}}' }
+        reliability: { status: {{status}}, notes: '{{notes}}' }
+        maintainability: { status: {{status}}, notes: '{{notes}}' }
+
+  - id: risk-summary
+    instruction: |
+      risk_summary: resumo do *risk-profile, quando existir; senão {}. totals conta os riscos por faixa de pontuação (probabilidade × impacto): critical (9), high (6), medium (4), low (2 e 3). highest traz o maior risco. recommendations separa o que precisa ser corrigido (must_fix) do que só precisa ser monitorado (monitor).
+    template: |
+      risk_summary:
+        totals: { critical: {{critical}}, high: {{high}}, medium: {{medium}}, low: {{low}} }
+        highest: { id: '{{risk_id}}', score: {{score}}, title: '{{risk_title}}' }
+        recommendations: { must_fix: [], monitor: [] }
+
+  - id: recommendations
+    instruction: |
+      recommendations: ações recomendadas. immediate: corrigir antes de produção. future: pode ficar para depois (vira backlog). Cada item: { action, refs }, com os arquivos envolvidos em refs.
+    template: |
+      recommendations:
+        immediate: []                     # [{ action: '...', refs: ['caminho/arquivo.ts'] }]
+        future: []
+
+  - id: validation
+    instruction: |
+      Antes de gravar, confira:
+      - As 15 chaves presentes, nesta ordem: schema, story, story_title, gate, status_reason, reviewer, reviewed_revision, updated, inspection_report, iteration, top_issues, waiver, nfr_validation, risk_summary, recommendations
+      - gate coerente com os achados: nenhum high em PASS; WAIVED só com waiver.active: true, motivo e aprovação
+      - severity só com low, medium ou high
+      - O arquivo é YAML válido
+      Se algo falhar, corrija antes de gravar.

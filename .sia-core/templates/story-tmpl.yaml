@@ -1,0 +1,218 @@
+# Template da story do SIA.
+# Gera exatamente as seções canônicas da seção 6.1 do guia de autoria, com estes títulos e nesta ordem:
+# tasks e a CLI (`sia story status`, `sia sdc verify`) dependem deles. Não renomeie, não reordene, não acrescente seções ##.
+# Usado por: @pm [Scrum] em *create-story e *create-brownfield-story, via task create-doc.
+# owner = quem cria e preenche a seção na criação; editors = quem pode alterá-la depois (tabela de edição da seção 6.1).
+# As seções da implementação ficam com o executor declarado em ## Executor (@dev, @devops ou @pm [Análise]).
+template:
+  id: story-template
+  name: Story
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/stories/{{epic_num}}.{{story_num}}-{{story_slug}}.story.md
+    title: "Story {{epic_num}}.{{story_num}}: {{story_title}}"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: status
+    title: Status
+    type: choice
+    choices: [Draft, Ready, InProgress, InReview, Done]
+    instruction: |
+      Na criação, use Draft. Escreva só o valor, sozinho na primeira linha não vazia depois do título: a CLI lê este formato.
+      Transições (seção 6 do guia), sempre registradas no Change Log:
+      - Draft → Ready: @pm [Product Owner] em *validate-story, com GO (nota ≥ 7/10)
+      - Ready → InProgress e InProgress → InReview: o executor declarado (@dev ou @devops em *develop; @pm [Análise] em *execute-research-story)
+      - InReview → Done (PASS, CONCERNS ou WAIVED) e InReview → InProgress (FAIL): @pm [Qualidade] em *qa-gate
+      O @validator nunca muda o status.
+    owner: pm:scrum
+    editors: [pm, dev, devops]
+
+  - id: executor
+    title: Executor
+    type: template-text
+    instruction: |
+      Quatro linhas, exatamente neste formato. Classifique a story pela tabela do passo 6 da task create-story:
+      - Executor (quem implementa e faz as transições Ready → InProgress → InReview):
+        - @dev [Desenvolvimento]: código, funcionalidades, lógica, API, integração
+        - @dev [Dados]: schema, RLS, migrations
+        - @dev [UX/UI]: interface e componentes
+        - @dev [Arquitetura]: decisão estrutural (com ADR)
+        - @devops: infraestrutura, CI/CD, deploy
+        - @pm [Análise]: pesquisa, com entregável documental
+        Story que mistura tipos: o executor é o do tipo com mais trabalho; os demais tipos vão para Dev Notes.
+      - Gate de qualidade: sempre @pm [Qualidade]. Executor e gate nunca são o mesmo agente com o mesmo chapéu.
+      - Inspeção: @validator (*revisar-feature) em toda story que altera código ou configuração. Em story de pesquisa: "não se aplica (entregável documental)".
+      - Complexidade: Baixa (um arquivo ou componente, escopo bem definido, poucas dependências), Média (vários arquivos, alguma interação entre sistemas) ou Alta (muitos arquivos, vários sistemas, padrão novo ou segurança crítica), com o motivo curto entre parênteses.
+    template: |
+      - Executor: {{executor}}
+      - Gate de qualidade: @pm [Qualidade]
+      - Inspeção: @validator (*revisar-feature)
+      - Complexidade: {{complexity}} ({{complexity_reason}})
+    examples:
+      - |
+        - Executor: @dev [Desenvolvimento]
+        - Gate de qualidade: @pm [Qualidade]
+        - Inspeção: @validator (*revisar-feature)
+        - Complexidade: Média (três arquivos e uma API externa)
+    owner: pm:scrum
+    editors: [pm]
+
+  - id: story
+    title: Story
+    type: template-text
+    instruction: |
+      Escreva a story a partir do epic, no formato persona, ação e benefício. Em seguida, uma ou duas frases com o problema e o valor de negócio (a validação de 10 pontos do *validate-story verifica os dois).
+    template: |
+      **Como** {{role}}, **quero** {{action}}, **para** {{benefit}}.
+
+      {{problem_and_business_value}}
+    elicit: true
+    owner: pm:scrum
+    editors: [pm]
+
+  - id: acceptance-criteria
+    title: Critérios de Aceite
+    type: numbered-list
+    instruction: |
+      Copie a lista numerada de critérios de aceite do epic, sem mudar o sentido. Cada critério é testável, de preferência no formato Dado/Quando/Então. As tasks citam estes números (CA: n).
+    template: "{{n}}. Dado {{context}}, quando {{action}}, então {{outcome}}"
+    elicit: true
+    owner: pm:scrum
+    editors: [pm]
+
+  - id: scope
+    title: Escopo
+    instruction: Deixe explícito o que a story entrega e o que fica de fora, a partir do epic e do PRD, para não haver ambiguidade na implementação nem na revisão.
+    owner: pm:scrum
+    editors: [pm]
+    sections:
+      - id: in-scope
+        title: Dentro
+        type: bullet-list
+        instruction: O que esta story entrega.
+      - id: out-of-scope
+        title: Fora
+        type: bullet-list
+        instruction: O que fica fora desta story e, quando souber, em qual story ou epic será tratado.
+
+  - id: dependencies
+    title: Dependências
+    type: bullet-list
+    instruction: |
+      Stories pré-requisito, serviços, variáveis de ambiente, dados e decisões de que esta story depende (ex.: "Story 1.2 em Done", "credenciais do Supabase configuradas"). Quando a story precisar de operação exclusiva de outro agente (ex.: MCP ou deploy com o @devops), registre-a aqui com o comando correspondente (ex.: `@devops *setup-mcp`). Sem dependências, escreva "Nenhuma".
+    owner: pm:scrum
+    editors: [pm]
+
+  - id: risks
+    title: Riscos
+    type: bullet-list
+    instruction: Riscos conhecidos (técnicos, de integração, de dados, de regressão), tirados do PRD, da arquitetura e da story anterior, com a mitigação de cada um. Critério ambíguo no modo YOLO entra aqui como ponto a esclarecer. Sem riscos, escreva "Nenhum identificado".
+    owner: pm:scrum
+    editors: [pm]
+
+  - id: definition-of-done
+    title: Definição de Pronto
+    type: bullet-list
+    instruction: |
+      O que precisa ser verdade para a story estar pronta: critérios de aceite atendidos; testes novos e existentes passando; código no padrão do projeto; sem regressão; documentação atualizada quando aplicável. Acrescente o que for específico desta story. O executor confere estes pontos com o checklist story-dod-checklist.
+    owner: pm:scrum
+    editors: [pm]
+
+  - id: tasks-subtasks
+    title: Tasks / Subtasks
+    type: bullet-list
+    instruction: |
+      Quebre a story nas tasks e subtasks de implementação, numeradas, citando os critérios de aceite atendidos (CA: n). Decisão estrutural pede uma task inicial de ADR com @dev [Arquitetura] (*create-adr). Na implementação, o executor só marca um checkbox ([ ] → [x]) depois de implementar, testar e validar o item.
+    template: |
+      - [ ] 1. {{task_1}} (CA: {{ac_refs}})
+        - [ ] 1.1 {{subtask_1_1}}
+      - [ ] 2. {{task_2}} (CA: {{ac_refs}})
+        - [ ] 2.1 {{subtask_2_1}}
+    elicit: true
+    owner: pm:scrum
+    editors: [dev, devops, pm:analyst]
+
+  - id: dev-notes
+    title: Dev Notes
+    instruction: |
+      Reúna as informações relevantes para esta story, tiradas SOMENTE de artefatos reais em docs/ (PRD, epic, arquitetura, stories anteriores):
+      - Não invente informação (Artigo IV)
+      - Inclua o trecho relevante da Source Tree, quando conhecido
+      - Inclua as notas importantes da story anterior que afetam esta
+      - Cite a origem de cada informação no formato `docs/arquivo.md#secao`
+      - Dê contexto suficiente para que o executor NUNCA precise ler os documentos de arquitetura: estas notas, junto com as tasks e subtasks, entregam o contexto completo para atender a todos os critérios e concluir todas as tasks com o mínimo de esforço
+    elicit: true
+    owner: pm:scrum
+    editors: [dev, devops, pm:analyst]
+
+  - id: testing
+    title: Testes
+    instruction: |
+      Liste os padrões de teste da arquitetura que o executor precisa seguir nesta story:
+      - Local dos arquivos de teste
+      - Padrões de teste
+      - Frameworks e padrões a usar
+      - Testes específicos desta story (cenários-chave, nível e prioridade; ver data/test-levels-framework.md e data/test-priorities-matrix.md)
+      O executor pode complementar esta seção durante a implementação.
+    elicit: true
+    owner: pm:scrum
+    editors: [dev, devops, pm:analyst]
+
+  - id: dev-agent-record
+    title: Registro do Dev
+    instruction: Preenchido pelo executor declarado durante a implementação. Na criação, deixe as cinco subseções vazias.
+    owner: dev
+    editors: [dev, devops, pm:analyst]
+    sections:
+      - id: agent-model
+        title: Modelo usado
+        template: "{{agent_model_name_version}}"
+        instruction: Modelo de IA e versão usados na implementação.
+      - id: yolo-decisions
+        title: Decisões (modo YOLO)
+        instruction: No modo YOLO, registre cada decisão tomada sem consultar o usuário, com as alternativas consideradas e o motivo (core-config, quality.yoloDecisionLog). Nos outros modos, pode ficar vazia.
+      - id: debug-log
+        title: Log de debug
+        instruction: Referências a logs, traces e investigações relevantes feitos durante a implementação, incluindo o resumo da autocrítica.
+      - id: completion-notes
+        title: Notas de conclusão
+        instruction: Notas sobre a conclusão das tasks, problemas encontrados e o que a próxima story precisa saber.
+      - id: file-list
+        title: File List
+        instruction: Todo arquivo criado, modificado ou removido na implementação, com caminho relativo à raiz do projeto. Atualize a cada task.
+
+  - id: qa-results
+    title: Resultado do QA
+    instruction: |
+      Deixe vazia na criação. Escrita pelo @pm [Qualidade] no *qa-gate, exatamente no formato da seção 6.2 do guia de autoria; a CLI lê a última ocorrência de cada campo. O bloco "Pedido de correção" só existe quando o gate é FAIL.
+    examples:
+      - |
+        - **Gate:** PASS
+        - **Revisor:** @pm (Mira) [Qualidade]
+        - **Revisão:** 3f2a9c1
+        - **Data:** 2026-10-16
+        - **Arquivo do gate:** docs/qa/gates/2.1-login-social.yml
+        - **Inspeção:** docs/qa/inspections/2026-10-16-1430-revisar-feature-2.1.md (aprovado com ressalvas)
+        - **Resumo:** uma ou duas frases
+
+        ### Pedido de correção (iteração 1)
+        Só quando o gate é FAIL. Lista numerada de correções com severidade, arquivo e critério de aceite afetado.
+    owner: pm:quality
+    editors: [pm:quality]
+
+  - id: change-log
+    title: Change Log
+    type: table
+    columns: [Data, Agente, Mudança]
+    instruction: |
+      Só acrescente linhas; nunca edite nem apague as existentes. Registre toda transição de status com data, agente, de → para e motivo. Na coluna Agente, use o formato "@agente [Chapéu]" (ex.: "@pm [Scrum]"); agente sem chapéus, só "@agente" (ex.: "@devops"). Na criação, escreva a primeira linha.
+    examples:
+      - "| 2026-10-16 | @pm [Scrum] | Story criada a partir do epic 2. Status: Draft |"
+      - "| 2026-10-17 | @pm [Product Owner] | Validação GO (9/10). Status: Draft → Ready |"
+    owner: pm:scrum
+    editors: [pm, dev, devops, squad-creator]

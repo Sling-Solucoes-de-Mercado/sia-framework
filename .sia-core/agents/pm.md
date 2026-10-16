@@ -110,7 +110,7 @@ hats:
     name: Produto
     origin: pm
     mindset: Estratégia, PRD, epics, requisitos e specs. Pergunta "por quê" e "para quem".
-    commands: [create-prd, create-brownfield-prd, create-epic, execute-epic, shard-prd, correct-course, gather-requirements, write-spec, run-workflow]
+    commands: [create-prd, create-brownfield-prd, create-epic, execute-epic, shard-prd, pm-checklist, correct-course, gather-requirements, write-spec, run-workflow]
   - id: analyst
     name: Análise
     origin: analyst
@@ -172,6 +172,12 @@ commands:
     visibility: [full]
     task: shard-doc.md
     description: 'Fragmenta o PRD em arquivos por seção e por epic'
+  - name: pm-checklist
+    hat: product
+    visibility: [full]
+    task: execute-checklist.md
+    checklist: pm-checklist.md
+    description: 'Roda o checklist do PM sobre o PRD e os epics'
   - name: correct-course
     hat: product
     visibility: [full, quick]
@@ -424,6 +430,8 @@ dependencies:
     - po-master-checklist.md
     - story-draft-checklist.md
     - change-checklist.md
+    - story-dod-checklist.md
+    - self-critique-checklist.md
   data:
     - technical-preferences.md
     - elicitation-methods.md

@@ -139,6 +139,7 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 
 | Artefato | Caminho padrão |
 |----------|----------------|
+| Project brief, pesquisa de mercado, análise de concorrentes | `docs/brief.md`, `docs/market-research.md`, `docs/competitor-analysis.md` |
 | PRD | `docs/prd.md` (fragmentado em `docs/prd/`) |
 | Epics | `docs/prd/epic-{n}-{slug}.md` |
 | Arquitetura | `docs/architecture.md` (fragmentada em `docs/architecture/`) |
@@ -159,6 +160,7 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | Arquivo morto do backlog | `docs/stories/backlog-archive-{AAAA-MM}.md` |
 | Artefatos de UX (pesquisa, wireframes, auditorias) | `docs/ux/` |
 | Especificação de front-end | `docs/front-end-spec.md` |
+| Arquitetura de front-end | `docs/front-end-architecture.md` |
 | Gotchas | `docs/gotchas.md` |
 | Squads | `squads/{nome}/` |
 | Runtime (não versionado) | `.sia/` (handoffs, `sdc/`, `qa-loop/`, `workflows/`, agente ativo) |
@@ -257,7 +259,7 @@ Quem edita cada seção:
 |-------|-------------|
 | Título, Story, Critérios de Aceite, Escopo, Dependências, Riscos, Definição de Pronto | `@pm` |
 | Status | conforme a tabela de transições |
-| Tasks / Subtasks (checkboxes), Dev Notes, Testes, Registro do Dev | `@dev` |
+| Tasks / Subtasks (checkboxes), Dev Notes, Testes, Registro do Dev | executor declarado (`@dev`, `@devops` ou `@pm` [Análise]) |
 | Resultado do QA | `@pm` [Qualidade] |
 | Change Log | qualquer agente, só acrescentando linhas |
 
@@ -301,7 +303,7 @@ story_title: Login social
 gate: PASS                      # PASS | CONCERNS | FAIL | WAIVED
 status_reason: Uma frase com o motivo
 reviewer: '@pm (Mira) [Qualidade]'
-reviewed_revision: 3f2a9c1
+reviewed_revision: '3f2a9c1'           # entre aspas: um hash só com dígitos viraria número
 updated: '2026-10-16T14:45:00-03:00'
 inspection_report: docs/qa/inspections/2026-10-16-1430-revisar-feature-2.1.md
 iteration: 1                    # iteração do QA Loop
@@ -321,7 +323,7 @@ scope: '2.1'
 story: '2.1'                    # vazio quando o escopo não é uma story
 verdict: aprovado com ressalvas # aprovado | aprovado com ressalvas | reprovado
 date: '2026-10-16T14:30:00-03:00'
-revision: 3f2a9c1
+revision: '3f2a9c1'
 findings: { bloqueante: 0, alto: 0, medio: 1, baixo: 2, nota: 0 }
 ---
 ```
@@ -705,7 +707,7 @@ Tasks podem citar estes comandos. Todos rodam a partir da raiz do projeto.
 
 | Comando | Função |
 |---------|--------|
-| `sia doctor` | Diagnóstico do ambiente: estrutura, config, Node, git, gh, projeções, MCPs |
+| `sia doctor [--json]` | Diagnóstico do ambiente: estrutura, config, Node ≥ 22, git, gh, projeções, hooks, MCPs |
 | `sia validate` | Valida agentes, tasks, templates, checklists, workflows, skills e referências cruzadas |
 | `sia validate --squad {nome}` | Valida um squad contra o schema |
 | `sia sync [--ide claude,codex,gemini,grok] [--check]` | Gera ou confere as projeções das IDEs |
@@ -716,6 +718,7 @@ Tasks podem citar estes comandos. Todos rodam a partir da raiz do projeto.
 | `sia sdc status {storyId}` | Mostra o estado do ciclo |
 | `sia mcp setup {supabase\|vercel} [--ide ...]` | Configura o MCP nas IDEs escolhidas |
 | `sia mcp status` | Mostra quais MCPs estão configurados em cada IDE |
+| `sia mcp remove {supabase\|vercel} [--ide ...]` | Remove a configuração do MCP nas IDEs escolhidas |
 | `sia squad list` | Lista squads locais |
 
 | `sia agent use {id}` / `sia agent current` / `sia agent clear` | Registra, mostra ou limpa o agente ativo (`.sia/active-agent.json`) |

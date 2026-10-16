@@ -111,7 +111,7 @@ hats:
     name: Arquitetura
     origin: architect
     mindset: Visão sistêmica, decisões registradas em ADR, complexidade e impacto avaliados antes de codar.
-    commands: [create-architecture, create-backend-architecture, create-front-end-architecture, create-brownfield-architecture, create-adr, analyze-impact, analyze-codebase, document-project, assess-complexity, create-plan, create-context, validate-tech-preset, architect-checklist, research]
+    commands: [create-architecture, create-backend-architecture, create-front-end-architecture, create-brownfield-architecture, create-adr, analyze-impact, analyze-codebase, document-project, assess-complexity, create-plan, create-context, validate-tech-preset, architect-checklist, brownfield-checklist, research]
   - id: data
     name: Dados
     origin: data-engineer
@@ -274,6 +274,12 @@ commands:
     task: execute-checklist.md
     checklist: architect-checklist.md
     description: 'Roda o checklist de arquitetura'
+  - name: brownfield-checklist
+    hat: architect
+    visibility: [full]
+    task: execute-checklist.md
+    checklist: brownfield-compatibility-checklist.md
+    description: 'Roda o checklist de compatibilidade ao adotar o SIA em projeto existente'
   - name: research
     hat: architect
     args: '{tema}'

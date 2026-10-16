@@ -1,0 +1,254 @@
+# Template de pesquisa de mercado.
+# Usado por: @pm [Análise] em *market-research, via task create-doc.
+template:
+  id: market-research-template
+  name: Relatório de Pesquisa de Mercado
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/market-research.md
+    title: "Pesquisa de Mercado: {{project_product_name}}"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+  custom_elicitation:
+    title: Ações de elicitação da pesquisa de mercado
+    options:
+      - Expandir o dimensionamento do mercado com análise de sensibilidade
+      - Aprofundar um segmento específico de clientes
+      - Analisar em detalhe uma tendência emergente do mercado
+      - Comparar este mercado com um mercado análogo
+      - Testar as premissas sobre o mercado
+      - Explorar oportunidades em mercados adjacentes
+      - Questionar a definição e os limites do mercado
+      - Gerar cenários estratégicos (melhor caso, caso base, pior caso)
+      - "Se ao menos tivéssemos considerado [fator X do mercado]..."
+      - Seguir para a próxima seção
+
+sections:
+  - id: executive-summary
+    title: Resumo Executivo
+    instruction: Apresente uma visão de alto nível dos principais achados, da avaliação da oportunidade de mercado e das recomendações estratégicas. Escreva esta seção POR ÚLTIMO, depois de concluir todas as outras.
+
+  - id: research-objectives
+    title: Objetivos e Metodologia da Pesquisa
+    instruction: Este template guia a criação de um relatório completo de pesquisa de mercado. Comece entendendo quais insights de mercado o usuário precisa e por quê. Trabalhe cada seção de forma sistemática, com os frameworks analíticos adequados aos objetivos da pesquisa.
+    sections:
+      - id: objectives
+        title: Objetivos da Pesquisa
+        instruction: |
+          Liste os objetivos principais desta pesquisa:
+          - Que decisões esta pesquisa vai embasar?
+          - Que perguntas específicas precisam de resposta?
+          - Quais são os critérios de sucesso desta pesquisa?
+      - id: methodology
+        title: Metodologia da Pesquisa
+        instruction: |
+          Descreva a abordagem da pesquisa:
+          - Fontes de dados usadas (primárias e secundárias)
+          - Frameworks de análise aplicados
+          - Período de coleta dos dados
+          - Limitações e premissas
+
+  - id: market-overview
+    title: Visão Geral do Mercado
+    sections:
+      - id: market-definition
+        title: Definição do Mercado
+        instruction: |
+          Defina o mercado analisado:
+          - Categoria de produto ou serviço
+          - Abrangência geográfica
+          - Segmentos de clientes incluídos
+          - Posição na cadeia de valor
+      - id: market-size-growth
+        title: Tamanho e Crescimento do Mercado
+        instruction: |
+          Conduza os cálculos de TAM, SAM e SOM com premissas claras. Use uma ou mais abordagens:
+          - Top-down: parta de dados do setor e vá restringindo
+          - Bottom-up: construa a partir da economia por cliente ou por unidade
+          - Teoria do valor: com base no valor entregue em relação às alternativas
+        sections:
+          - id: tam
+            title: Mercado Total Endereçável (TAM)
+            instruction: Calcule e explique a oportunidade total de mercado.
+          - id: sam
+            title: Mercado Endereçável Atendível (SAM)
+            instruction: Defina a parte do TAM que dá para alcançar de forma realista.
+          - id: som
+            title: Mercado Obtenível (SOM)
+            instruction: Estime a parte que dá para capturar de forma realista.
+      - id: market-trends
+        title: Tendências e Vetores do Mercado
+        instruction: Analise as principais tendências que moldam o mercado com frameworks adequados, como PESTEL.
+        sections:
+          - id: key-trends
+            title: Principais Tendências
+            instruction: |
+              Liste e explique de 3 a 5 tendências relevantes:
+              - Tendência 1: descrição e impacto
+              - Tendência 2: descrição e impacto
+              - e assim por diante
+          - id: growth-drivers
+            title: Vetores de Crescimento
+            instruction: Identifique os principais fatores que impulsionam o crescimento do mercado.
+          - id: market-inhibitors
+            title: Inibidores do Mercado
+            instruction: Identifique os fatores que limitam o crescimento do mercado.
+
+  - id: customer-analysis
+    title: Análise de Clientes
+    sections:
+      - id: segment-profiles
+        title: Perfis dos Segmentos-Alvo
+        instruction: Para cada segmento, crie um perfil detalhado com dados demográficos ou firmográficos, psicográficos, comportamentos, necessidades e disposição a pagar.
+        repeatable: true
+        sections:
+          - id: segment
+            title: "Segmento {{segment_number}}: {{segment_name}}"
+            template: |
+              - **Descrição:** {{brief_overview}}
+              - **Tamanho:** {{number_of_customers_market_value}}
+              - **Características:** {{key_demographics_firmographics}}
+              - **Necessidades e dores:** {{primary_problems}}
+              - **Processo de compra:** {{purchasing_decisions}}
+              - **Disposição a pagar:** {{price_sensitivity}}
+      - id: jobs-to-be-done
+        title: Análise de Jobs-to-be-Done
+        instruction: Descubra o que os clientes realmente tentam realizar.
+        sections:
+          - id: functional-jobs
+            title: Jobs Funcionais
+            instruction: Liste as tarefas práticas e os objetivos que os clientes precisam cumprir.
+          - id: emotional-jobs
+            title: Jobs Emocionais
+            instruction: Descreva os sentimentos e as percepções que os clientes buscam.
+          - id: social-jobs
+            title: Jobs Sociais
+            instruction: Explique como os clientes querem ser percebidos pelos outros.
+      - id: customer-journey
+        title: Mapa da Jornada do Cliente
+        instruction: Mapeie a experiência de ponta a ponta dos segmentos principais.
+        template: |
+          Para o segmento principal:
+
+          1. **Descoberta:** {{discovery_process}}
+          2. **Consideração:** {{evaluation_criteria}}
+          3. **Compra:** {{decision_triggers}}
+          4. **Onboarding:** {{initial_expectations}}
+          5. **Uso:** {{interaction_patterns}}
+          6. **Recomendação:** {{referral_behaviors}}
+
+  - id: competitive-landscape
+    title: Cenário Competitivo
+    sections:
+      - id: market-structure
+        title: Estrutura do Mercado
+        instruction: |
+          Descreva o ambiente competitivo geral:
+          - Número de concorrentes
+          - Concentração do mercado
+          - Intensidade competitiva
+      - id: major-players
+        title: Análise dos Principais Concorrentes
+        instruction: |
+          Para os 3 a 5 principais concorrentes:
+          - Nome da empresa e breve descrição
+          - Participação de mercado estimada
+          - Principais forças e fraquezas
+          - Foco de clientes
+          - Estratégia de preços
+      - id: competitive-positioning
+        title: Posicionamento Competitivo
+        instruction: |
+          Analise como os concorrentes se posicionam:
+          - Propostas de valor
+          - Estratégias de diferenciação
+          - Lacunas e oportunidades no mercado
+
+  - id: industry-analysis
+    title: Análise do Setor
+    sections:
+      - id: porters-five-forces
+        title: Cinco Forças de Porter
+        instruction: Analise cada força com evidências específicas e implicações.
+        sections:
+          - id: supplier-power
+            title: "Poder dos Fornecedores: {{power_level}}"
+            template: "{{analysis_and_implications}}"
+          - id: buyer-power
+            title: "Poder dos Compradores: {{power_level}}"
+            template: "{{analysis_and_implications}}"
+          - id: competitive-rivalry
+            title: "Rivalidade entre Concorrentes: {{intensity_level}}"
+            template: "{{analysis_and_implications}}"
+          - id: threat-new-entry
+            title: "Ameaça de Novos Entrantes: {{threat_level}}"
+            template: "{{analysis_and_implications}}"
+          - id: threat-substitutes
+            title: "Ameaça de Substitutos: {{threat_level}}"
+            template: "{{analysis_and_implications}}"
+      - id: adoption-lifecycle
+        title: Estágio no Ciclo de Adoção de Tecnologia
+        instruction: |
+          Identifique onde o mercado está na curva de adoção:
+          - Estágio atual e evidências
+          - Implicações para a estratégia
+          - Evolução esperada no tempo
+
+  - id: opportunity-assessment
+    title: Avaliação de Oportunidades
+    sections:
+      - id: market-opportunities
+        title: Oportunidades de Mercado
+        instruction: Identifique oportunidades específicas a partir da análise.
+        repeatable: true
+        sections:
+          - id: opportunity
+            title: "Oportunidade {{opportunity_number}}: {{name}}"
+            template: |
+              - **Descrição:** {{what_is_the_opportunity}}
+              - **Tamanho/potencial:** {{quantified_potential}}
+              - **Requisitos:** {{needed_to_capture}}
+              - **Riscos:** {{key_challenges}}
+      - id: strategic-recommendations
+        title: Recomendações Estratégicas
+        sections:
+          - id: go-to-market
+            title: Estratégia de Entrada no Mercado (Go-to-Market)
+            instruction: |
+              Recomende a abordagem de entrada ou expansão:
+              - Priorização de segmentos-alvo
+              - Estratégia de posicionamento
+              - Estratégia de canais
+              - Oportunidades de parceria
+          - id: pricing-strategy
+            title: Estratégia de Preços
+            instruction: |
+              Com base na disposição a pagar e no cenário competitivo:
+              - Modelo de preços recomendado
+              - Pontos ou faixas de preço
+              - Métrica de valor
+              - Posicionamento competitivo
+          - id: risk-mitigation
+            title: Mitigação de Riscos
+            instruction: |
+              Principais riscos e estratégias de mitigação:
+              - Riscos de mercado
+              - Riscos competitivos
+              - Riscos de execução
+              - Riscos regulatórios e de conformidade
+
+  - id: appendices
+    title: Apêndices
+    sections:
+      - id: data-sources
+        title: A. Fontes de Dados
+        instruction: Liste todas as fontes usadas na pesquisa.
+      - id: calculations
+        title: B. Cálculos Detalhados
+        instruction: Inclua os cálculos ou modelos mais complexos.
+      - id: additional-analysis
+        title: C. Análises Complementares
+        instruction: Análises de apoio que não entraram no corpo principal.

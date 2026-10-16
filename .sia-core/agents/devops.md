@@ -230,6 +230,8 @@ dependencies:
   checklists:
     - pre-push-checklist.md
     - release-checklist.md
+    - story-dod-checklist.md
+    - self-critique-checklist.md
   data:
     - mcp-servers.yaml
     - vercel-patterns.md

@@ -11,6 +11,7 @@ project:
   name: ''                    # nome do produto/projeto
   type: greenfield            # greenfield | brownfield
   language: pt-BR             # idioma dos documentos gerados
+  techPreset: nextjs-react    # preset ativo em .sia-core/data/tech-presets/ (vazio = nenhum)
 
 # Caminhos dos artefatos do projeto (ver guia de autoria, seção 5.2)
 paths:
@@ -75,6 +76,7 @@ integrations:
     projectRef: ''            # referência do projeto no Supabase
     mcp:
       readOnly: true          # MCP em modo somente leitura por padrão
+      features: []            # grupos de ferramentas do MCP (ex.: [database, docs]); vazio = padrão do servidor
   vercel:
     enabled: false
     team: ''                  # slug do time na Vercel
