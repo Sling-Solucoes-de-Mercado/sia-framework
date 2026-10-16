@@ -150,12 +150,16 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | Avaliações de QA (NFR, risco, test design, trace) | `docs/qa/assessments/{epic}.{story}-{tipo}-{AAAAMMDD}.md` |
 | Relatórios de inspeção | `docs/qa/inspections/AAAA-MM-DD-HHmm-{comando}-{escopo}.md` |
 | Plano de execução de epic | `docs/prd/epic-{n}-execution.yaml` |
+| Propostas de mudança (`*correct-course`) | `docs/prd/change-proposals/{AAAA-MM-DD}-{slug}.md` |
+| Pesquisas (`*research`, `*research-deps` fora de story) | `docs/research/{AAAA-MM-DD}-{slug}/` |
+| Resultado de brainstorming | `docs/brainstorming-session-results.md` |
 | Índice de stories | `docs/stories/index.md` |
+| Arquivo morto do backlog | `docs/stories/backlog-archive-{AAAA-MM}.md` |
 | Artefatos de UX (pesquisa, wireframes, auditorias) | `docs/ux/` |
 | Especificação de front-end | `docs/front-end-spec.md` |
 | Gotchas | `docs/gotchas.md` |
 | Squads | `squads/{nome}/` |
-| Runtime (não versionado) | `.sia/` (handoffs, estado do ciclo, sessão, agente ativo) |
+| Runtime (não versionado) | `.sia/` (handoffs, `sdc/`, `qa-loop/`, `workflows/`, agente ativo) |
 
 `{epic}.{story}` é o **storyId** (ex.: `1.3`). `{slug}` é o título curto em kebab-case, sem acentos.
 
@@ -178,16 +182,17 @@ Draft → Ready → InProgress → InReview → Done
 |-----------|------|---------|----------|
 | (criação) → `Draft` | `@pm` [Scrum] | `*create-story` | story criada a partir do epic |
 | `Draft` → `Ready` | `@pm` [Product Owner] | `*validate-story` | GO (nota ≥ 7/10) |
-| `Ready` → `InProgress` | `@dev` | `*develop` | início da implementação |
-| `InProgress` → `InReview` | `@dev` | `*develop` | tasks concluídas, testes e lint passando |
-| (inspeção) | `@validator` | `*revisar-feature {storyId}` | não muda status |
+| `Ready` → `InProgress` | executor declarado | `*develop` (`@dev`, `@devops`) ou `*execute-research-story` (`@pm` [Análise]) | início da execução |
+| `InProgress` → `InReview` | executor declarado | idem | tasks concluídas; testes e lint passando quando houver código |
+| (inspeção) | `@validator` | `*revisar-feature {storyId}` | stories que alteram código ou configuração; não muda status |
 | `InReview` → `Done` | `@pm` [Qualidade] | `*qa-gate` | `PASS`, `CONCERNS` ou `WAIVED` |
 | `InReview` → `InProgress` | `@pm` [Qualidade] | `*qa-gate` | `FAIL` (volta para `@dev` com fix request) |
 | (entrega) | `@devops` | `*push`, `*create-pr` | só com story em `Done` |
 
 Regras:
 
-- Toda transição é registrada no `## Change Log` da story: data, agente, de → para, motivo.
+- O executor declarado na seção `## Executor` é `@dev` [chapéu] por padrão, `@devops` em stories de infraestrutura (CI/CD, deploy) e `@pm` [Análise] em stories de pesquisa. Só ele faz Ready → InProgress → InReview.
+- Toda transição é registrada no `## Change Log` da story: data, agente no formato `@agente [Chapéu]`, de → para, motivo.
 - O `@devops` nunca muda status de story.
 - Story em `Draft` depois de um GO é violação de processo.
 
@@ -202,9 +207,10 @@ Os títulos abaixo são fixos. Tasks e CLI dependem deles.
 Draft
 
 ## Executor
-- Executor: @dev [chapéu]
+- Executor: @dev [Desenvolvimento]
 - Gate de qualidade: @pm [Qualidade]
 - Inspeção: @validator (*revisar-feature)
+- Complexidade: Média (motivo curto)
 
 ## Story
 **Como** {persona}, **quero** {ação}, **para** {benefício}.
@@ -276,6 +282,12 @@ Só quando o gate é FAIL. Lista numerada de correções com severidade, arquivo
 
 `Revisão` é o hash curto do commit avaliado (`git rev-parse --short HEAD`).
 
+Da iteração 2 do QA Loop em diante, o gate acrescenta `### Revisão (iteração N)` dentro de `## Resultado do QA`, repetindo os mesmos campos. Como vale a última ocorrência de cada campo, o veredito atual é sempre o da iteração mais recente. A linha opcional `- **Follow-up:** [2.1-F1], [2.1-F2]` lista os itens criados no backlog.
+
+As correções do `@dev` ficam em `### Notas de conclusão` como `#### Correções do QA (iteração N)`.
+
+**Conversão de severidade da inspeção para o gate:** `bloqueante` e `alto` → `high`; `medio` → `medium`; `baixo` → `low`; `nota` não entra em `top_issues`. Achado `bloqueante` nunca é dispensado com `WAIVED`.
+
 **Arquivo do gate** (`docs/qa/gates/{storyId}-{slug}.yml`):
 
 ```yaml
@@ -293,7 +305,7 @@ top_issues: []                  # [{id, severity: low|medium|high, category, fin
 waiver: { active: false, reason: '', approved_by: '' }
 nfr_validation: {}              # {security|performance|reliability|maintainability: {status: PASS|CONCERNS|FAIL, notes}}
 risk_summary: {}
-recommendations: { immediate: [], future: [] }
+recommendations: { immediate: [], future: [] }   # itens: {action, refs}
 ```
 
 **Relatório de inspeção** (`docs/qa/inspections/AAAA-MM-DD-HHmm-{comando}-{escopo}.md`) começa com frontmatter:
@@ -506,7 +518,7 @@ sections:
         instruction: ...
 ```
 
-Campos de seção aceitos: `id`, `title`, `instruction`, `type` (`paragraphs`, `bullet-list`, `numbered-list`, `table`, `choice`, `code`, `template-text`), `elicit`, `repeatable`, `condition`, `columns`, `choices`, `template`, `examples`, `owner`, `editors`, `sections`.
+Campos de seção aceitos: `id`, `title`, `instruction`, `type` (`paragraphs`, `bullet-list`, `numbered-list`, `table`, `choice`, `code`, `template-text`, `mermaid`), `elicit`, `repeatable`, `condition`, `columns`, `choices`, `template`, `examples`, `owner`, `editors`, `sections`, `mermaid_type`, `language`, `prefix`, `content`. Em `workflow`, `custom_elicitation` substitui o menu padrão de elicitação.
 
 `owner` e `editors` usam ids de agente do SIA (`pm`, `dev`...), opcionalmente com chapéu: `pm:quality`.
 

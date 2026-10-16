@@ -50,7 +50,8 @@ Cada agente tem autoridades exclusivas. Nenhum agente assume a autoridade de out
 | Criação e validação de stories (Draft → Ready) | `@pm` |
 | Veredito do QA gate (InReview → Done / InProgress) | `@pm` [Qualidade] |
 | Decisões de arquitetura e de schema de banco | `@dev` [Arquitetura / Dados] |
-| Implementação de código (Ready → InProgress → InReview) | `@dev` |
+| Implementação de código de produto | `@dev` |
+| Execução da story (Ready → InProgress → InReview) | executor declarado na story: `@dev` (padrão), `@devops` (infraestrutura, CI/CD, deploy) ou `@pm` [Análise] (pesquisa) |
 | Inspeção técnica de entregas | `@validator` |
 | Criação e modificação de agentes, tasks, workflows e squads | `@squad-creator` |
 

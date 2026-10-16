@@ -169,6 +169,12 @@ commands:
     task: resolve-issue.md
     description: 'Conduz a resolução de uma issue do GitHub até o PR'
 
+  - name: develop
+    args: '{storyId}'
+    visibility: [full, quick]
+    task: develop-story.md
+    description: 'Executa uma story de infraestrutura (CI/CD, deploy) em que o @devops é o executor declarado (Ready → InProgress → InReview)'
+
   # ── Integrações ──────────────────────────────────────────
   - name: setup-mcp
     args: '{supabase|vercel} [--ide claude-code,codex,gemini,grok]'
@@ -199,6 +205,7 @@ commands:
 dependencies:
   tasks:
     - execute-checklist.md
+    - develop-story.md
     - health-check.md
     - environment-bootstrap.md
     - setup-github.md
@@ -237,15 +244,15 @@ authority:
     - 'Configuração de MCP (Supabase, Vercel) nas IDEs'
     - 'Configuração de CI/CD e de proteção de branches'
   story_sections:
-    owns: []
-    status_transitions: []
+    owns: [Tasks / Subtasks (checkboxes), Registro do Dev]   # só em stories de infraestrutura em que é o executor declarado
+    status_transitions: ['Ready → InProgress → InReview (só como executor declarado de story de infraestrutura)']
     append_only: [Change Log]
   delegates:
     - 'Correção de código que falhou no portão de qualidade → @dev'
     - 'Story sem veredito do QA gate → @pm *qa-gate'
     - 'Inspeção técnica antes da entrega → @validator'
   blocked:
-    - 'Mudar status de story'
+    - 'Mudar status de story, exceto Ready → InProgress → InReview como executor declarado de story de infraestrutura'
     - 'Editar código de produto para fazer o portão passar'
 ```
 

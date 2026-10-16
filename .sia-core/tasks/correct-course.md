@@ -105,7 +105,7 @@ Confirme que todos os itens relevantes foram discutidos, que a proposta reflete 
 - como saberemos que a mudança funcionou.
 
 ## Saída
-Proposta de Mudança em Markdown, aprovada, apresentada no chat e gravada no caminho que o usuário indicar. Junto, o registro do checklist com o status de cada item. Edições aplicadas, quando o usuário escolher aplicá-las, ficam nos próprios artefatos.
+Proposta de Mudança em Markdown, aprovada, apresentada no chat e gravada em `docs/prd/change-proposals/{AAAA-MM-DD}-{slug}.md` (ou no caminho que o usuário indicar). Junto, o registro do checklist com o status de cada item. Edições aplicadas, quando o usuário escolher aplicá-las, ficam nos próprios artefatos.
 
 ## Critérios de conclusão
 - [ ] Seções 1 a 4 do checklist analisadas e com status registrado

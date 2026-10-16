@@ -115,7 +115,7 @@ hats:
     name: Análise
     origin: analyst
     mindset: Pesquisa, brainstorming, brief e análise competitiva. Evidência antes de opinião.
-    commands: [create-project-brief, market-research, competitor-analysis, brainstorm, research, research-deps, elicit]
+    commands: [create-project-brief, market-research, competitor-analysis, brainstorm, research, research-deps, execute-research-story, elicit]
   - id: scrum
     name: Scrum
     origin: sm
@@ -163,7 +163,7 @@ commands:
     description: 'Cria um epic com stories previstas, executores e gates'
   - name: execute-epic
     hat: product
-    args: '{epic} [--mode=interactive|yolo]'
+    args: '{epic} [start|continue|status|skip-story {storyId}|abort] [--mode=interactive|yolo|preflight]'
     visibility: [full, quick]
     task: execute-epic.md
     description: 'Executa um epic em ondas, story a story, pelo ciclo completo'
@@ -180,7 +180,7 @@ commands:
     description: 'Analisa um desvio de rota e propõe ajuste em PRD, epics e stories'
   - name: gather-requirements
     hat: product
-    args: '{storyId}'
+    args: '{storyId} [--source=user|prd|existing]'
     visibility: [full, quick]
     task: gather-requirements.md
     description: 'Spec Pipeline, fase 1: levanta requisitos (FR, NFR, CON)'
@@ -192,7 +192,7 @@ commands:
     description: 'Spec Pipeline, fase 4: escreve a spec rastreável'
   - name: run-workflow
     hat: product
-    args: '{workflow} [--mode=interactive|yolo]'
+    args: '{workflow} [start|continue|status|skip|abort] [--squad=nome]'
     visibility: [full, quick]
     task: run-workflow.md
     description: 'Conduz um workflow do .sia-core/workflows passo a passo'
@@ -231,10 +231,16 @@ commands:
     description: 'Gera um prompt de pesquisa aprofundada'
   - name: research-deps
     hat: analyst
-    args: '{storyId}'
+    args: '{storyId} [--force]'
     visibility: [full]
     task: research-dependencies.md
     description: 'Spec Pipeline, fase 3: pesquisa dependências e bibliotecas'
+  - name: execute-research-story
+    hat: analyst
+    args: '{storyId}'
+    visibility: [full]
+    task: develop-story.md
+    description: 'Executa uma story de pesquisa em que a @pm é a executora declarada (Ready → InProgress → InReview)'
   - name: elicit
     hat: analyst
     visibility: [full]
@@ -272,10 +278,10 @@ commands:
     description: 'Valida a story (10 pontos). GO move Draft → Ready'
   - name: backlog
     hat: owner
-    args: '{add|review|prioritize|summary}'
+    args: '{add|review|prioritize|summary|schedule}'
     visibility: [full, quick]
     task: manage-backlog.md
-    description: 'Gerencia o backlog: adicionar, revisar, priorizar, resumir'
+    description: 'Gerencia o backlog: adicionar, revisar, priorizar, resumir, agendar'
   - name: stories-index
     hat: owner
     visibility: [full]
@@ -289,6 +295,7 @@ commands:
     description: 'Fecha a story já aprovada no QA gate (registro administrativo)'
   - name: status
     hat: owner
+    args: '[epic] [--summary]'
     visibility: [full, quick, key]
     task: project-status.md
     description: 'Panorama do projeto: epics, stories, status e bloqueios'
@@ -315,7 +322,7 @@ commands:
     description: 'Revisa a entrega e decide o gate: PASS, CONCERNS, FAIL ou WAIVED'
   - name: qa-loop
     hat: quality
-    args: '{storyId}'
+    args: '[start|resume|stop|escalate|status] {storyId}'
     visibility: [full, quick]
     task: qa-loop.md
     description: 'Ciclo revisão → correção → nova revisão (máximo de 5 iterações)'
@@ -345,7 +352,7 @@ commands:
     description: 'Rastreia critérios de aceite até os testes (Dado/Quando/Então)'
   - name: create-fix-request
     hat: quality
-    args: '{storyId}'
+    args: '{storyId} [--include-minor]'
     visibility: [full]
     task: create-fix-request.md
     description: 'Gera o pedido de correção estruturado para o @dev'
@@ -398,6 +405,7 @@ dependencies:
     - test-design.md
     - trace-requirements.md
     - create-fix-request.md
+    - develop-story.md
   templates:
     - prd-tmpl.yaml
     - brownfield-prd-tmpl.yaml
@@ -442,7 +450,7 @@ authority:
     - 'Conduzir workflows e a execução de epics'
   story_sections:
     owns: [Título, Story, Critérios de Aceite, Escopo, Dependências, Riscos, Definição de Pronto, Resultado do QA]
-    status_transitions: ['Draft → Ready', 'InReview → Done', 'InReview → InProgress']
+    status_transitions: ['Draft → Ready', 'InReview → Done', 'InReview → InProgress', 'Ready → InProgress → InReview (só como executora declarada de story de pesquisa)']
     append_only: [Change Log]
   delegates:
     - 'Implementação, arquitetura, schema de banco, UI → @dev'
