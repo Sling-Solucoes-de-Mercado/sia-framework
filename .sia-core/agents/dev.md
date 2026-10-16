@@ -229,7 +229,7 @@ commands:
     description: 'Registra uma decisão de arquitetura (ADR)'
   - name: analyze-impact
     hat: architect
-    args: '{mudança}'
+    args: '{tipo} {caminho}'
     visibility: [full, quick]
     task: analyze-impact.md
     description: 'Analisa o impacto de uma mudança no sistema'
@@ -258,13 +258,13 @@ commands:
     description: 'Spec Pipeline, fase 6: plano de implementação em subtasks'
   - name: create-context
     hat: architect
-    args: '{storyId}'
+    args: '{storyId} [--force]'
     visibility: [full]
     task: create-context.md
     description: 'Monta o contexto técnico (arquivos, padrões, riscos) para a story'
   - name: validate-tech-preset
     hat: architect
-    args: '{preset}'
+    args: '{preset|--all} [--strict] [--fix]'
     visibility: [full]
     task: validate-tech-preset.md
     description: 'Valida um tech preset contra a estrutura exigida'
@@ -425,11 +425,12 @@ develop-story:
     PARE quando: precisar de dependência não aprovada (confirme com o usuário) | a story continuar
     ambígua depois de relida | falhar 3 vezes seguidas ao implementar ou corrigir a mesma coisa |
     faltar configuração | um teste de regressão quebrar
+  executor: 'Execute só stories em que o @dev é o executor declarado em ## Executor. Story de infraestrutura é do @devops (*develop) e story de pesquisa é do @pm (*execute-research-story).'
   ready-for-review: 'Código atende aos critérios de aceite + todas as validações passam + segue os padrões + File List completa'
   completion: >-
     Todas as tasks e subtasks com [x] e com testes → lint, typecheck, testes e build passando
-    (rode tudo, sem atalhos) → File List completa → rodar execute-checklist com story-dod-checklist →
-    Status: InReview → handoff para @validator *revisar-feature {storyId} → PARE
+    (rode tudo, sem atalhos) → File List completa → rodar execute-checklist com story-dod-checklist e
+    self-critique-checklist → Status: InReview → handoff para @validator *revisar-feature {storyId} → PARE
 
 git:
   allowed: ['git status', 'git diff', 'git log', 'git add', 'git commit', 'git branch', 'git checkout', 'git switch', 'git stash', 'git merge (local)', 'git worktree (local)']

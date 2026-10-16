@@ -1,0 +1,161 @@
+{{!-- Template do README do serviço, renderizado por *create-service (tasks/create-service.md).
+     Placeholders: serviceName, description, envVars[] (name, required, description, example),
+     isApiIntegration, hasAuth, storyId. Helpers: pascalCase, camelCase, kebabCase, upperCase. --}}
+# Serviço {{pascalCase serviceName}}
+
+> {{description}}
+
+## Instalação
+
+```bash
+npm install {{kebabCase serviceName}}
+```
+
+## Início rápido
+
+```typescript
+import { create{{pascalCase serviceName}}Service } from '{{kebabCase serviceName}}';
+
+const service = create{{pascalCase serviceName}}Service({
+{{#each envVars}}
+  {{camelCase this.name}}: process.env.{{this.name}},
+{{/each}}
+});
+
+// Use o serviço
+const result = await service.execute();
+```
+
+## Configuração
+
+### Variáveis de ambiente
+
+| Variável | Obrigatória | Descrição |
+|----------|-------------|-----------|
+{{#each envVars}}
+| `{{this.name}}` | {{#if this.required}}Sim{{else}}Não{{/if}} | {{this.description}} |
+{{/each}}
+
+### Configuração programática
+
+```typescript
+import { create{{pascalCase serviceName}}Service, {{pascalCase serviceName}}Config } from '{{kebabCase serviceName}}';
+
+const config: {{pascalCase serviceName}}Config = {
+{{#each envVars}}
+  {{camelCase this.name}}: '{{this.example}}',
+{{/each}}
+};
+
+const service = create{{pascalCase serviceName}}Service(config);
+```
+
+{{#if isApiIntegration}}
+## Integração com API
+
+Este serviço integra uma API externa. Recursos:
+
+- **Limite de taxa:** controle automático do ritmo de requisições
+- **Retentativa:** backoff exponencial em caso de falha
+- **Tratamento de erros:** erros tipados com mensagens acionáveis
+
+### Limites de taxa
+
+> **Nota:** os valores abaixo são exemplos. Ajuste conforme os limites reais da API.
+
+| Plano | Requisições/min | Rajada |
+|-------|-----------------|--------|
+| Free | 60 | 10 |
+| Pro | 600 | 100 |
+
+{{/if}}
+## Exemplos de uso
+
+### Uso básico
+
+```typescript
+const service = create{{pascalCase serviceName}}Service(config);
+
+try {
+  const result = await service.execute();
+  console.log('Success:', result);
+} catch (error) {
+  if (error instanceof {{pascalCase serviceName}}Error) {
+    console.error('Service error:', error.code, error.message);
+  }
+  throw error;
+}
+```
+
+{{#if hasAuth}}
+### Autenticação
+
+Este serviço exige autenticação. Informe as credenciais por variável de ambiente ou na configuração:
+
+```typescript
+const service = create{{pascalCase serviceName}}Service({
+  apiKey: process.env.{{upperCase serviceName}}_API_KEY,
+  // ou
+  accessToken: process.env.{{upperCase serviceName}}_ACCESS_TOKEN,
+});
+```
+
+{{/if}}
+## Tratamento de erros
+
+O serviço oferece erros tipados para os cenários de falha mais comuns:
+
+```typescript
+import { {{pascalCase serviceName}}Error, {{pascalCase serviceName}}ErrorCode } from '{{kebabCase serviceName}}';
+
+try {
+  await service.execute();
+} catch (error) {
+  if (error instanceof {{pascalCase serviceName}}Error) {
+    switch (error.code) {
+      case {{pascalCase serviceName}}ErrorCode.CONFIGURATION_ERROR:
+        // Trate problemas de configuração
+        break;
+      case {{pascalCase serviceName}}ErrorCode.NETWORK_ERROR:
+        // Trate problemas de rede
+        break;
+{{#if isApiIntegration}}
+      case {{pascalCase serviceName}}ErrorCode.RATE_LIMIT_EXCEEDED:
+        // Trate o limite de taxa
+        break;
+{{/if}}
+      default:
+        // Trate os demais erros
+    }
+  }
+}
+```
+
+## Referência da API
+
+Veja as [definições TypeScript](./dist/types.d.ts) para a documentação completa da API.
+
+## Desenvolvimento
+
+```bash
+# Instalar as dependências
+npm install
+
+# Rodar os testes
+npm test
+
+# Build
+npm run build
+
+# Checagem de tipos
+npm run typecheck
+```
+
+## Licença
+
+MIT
+
+---
+
+*Gerado pelo template de serviço do SIA*
+*Story: {{storyId}}*

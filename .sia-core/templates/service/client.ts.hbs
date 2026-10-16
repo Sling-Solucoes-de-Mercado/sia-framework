@@ -1,0 +1,406 @@
+{{!-- Template do cliente HTTP, renderizado por *create-service só quando o tipo é api-integration.
+     Placeholders: serviceName, storyId, isApiIntegration, apiBaseUrl,
+     envVars[] (name, isAuthHeader, headerName, headerPrefix). --}}
+/**
+ * Cliente HTTP da integração com a API {{pascalCase serviceName}}.
+ * Inclui limite de taxa, retentativa com backoff exponencial e log de requisições.
+ * @module {{kebabCase serviceName}}/client
+ * @story {{storyId}}
+ */
+
+{{#if isApiIntegration}}
+import type {
+  {{pascalCase serviceName}}Config,
+  {{pascalCase serviceName}}ApiResponse,
+  {{pascalCase serviceName}}RequestOptions,
+  {{pascalCase serviceName}}RateLimit,
+} from './types';
+import {
+  {{pascalCase serviceName}}Error,
+  {{pascalCase serviceName}}ErrorCode,
+  {{pascalCase serviceName}}Errors,
+} from './errors';
+
+/**
+ * Valores padrão de configuração.
+ */
+const DEFAULTS = {
+  baseUrl: '{{apiBaseUrl}}',
+  timeout: 30000,
+  maxRetries: 3,
+  retryBaseDelay: 1000,
+  retryMaxDelay: 30000,
+  debug: false,
+};
+
+/**
+ * Cliente HTTP da API {{pascalCase serviceName}}.
+ */
+export class {{pascalCase serviceName}}Client {
+  private readonly config: Required<Pick<{{pascalCase serviceName}}Config, 'baseUrl' | 'timeout' | 'maxRetries' | 'debug'>> & {{pascalCase serviceName}}Config;
+  private rateLimit: {{pascalCase serviceName}}RateLimit | null = null;
+
+  constructor(config: {{pascalCase serviceName}}Config) {
+    this.config = {
+      ...config,
+      baseUrl: config.baseUrl ?? DEFAULTS.baseUrl,
+      timeout: config.timeout ?? DEFAULTS.timeout,
+      maxRetries: config.maxRetries ?? DEFAULTS.maxRetries,
+      debug: config.debug ?? DEFAULTS.debug,
+    };
+  }
+
+  /**
+   * Faz uma requisição à API com retentativa e limite de taxa automáticos.
+   */
+  async request<T>(
+    endpoint: string,
+    options: {{pascalCase serviceName}}RequestOptions = {}
+  ): Promise<{{pascalCase serviceName}}ApiResponse<T>> {
+    const {
+      method = 'GET',
+      headers = {},
+      body,
+      params,
+      timeout = this.config.timeout,
+      noRetry = false,
+    } = options;
+
+    // Monta a URL com os parâmetros de query
+    const url = this.buildUrl(endpoint, params);
+
+    // Aguarda o limite de taxa, se necessário
+    await this.waitForRateLimit();
+
+    const requestHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...this.getAuthHeaders(),
+      ...headers,
+    };
+
+    const requestInit: RequestInit = {
+      method,
+      headers: requestHeaders,
+      body: body ? JSON.stringify(body) : undefined,
+    };
+
+    // Lógica de retentativa
+    const maxAttempts = noRetry ? 1 : this.config.maxRetries + 1;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        this.debug(`Request attempt ${attempt}/${maxAttempts}: ${method} ${url}`);
+
+        const response = await this.fetchWithTimeout(url, requestInit, timeout);
+
+        // Atualiza o limite de taxa a partir dos cabeçalhos
+        this.updateRateLimit(response.headers);
+
+        // Trata o limite de taxa (429)
+        if (response.status === 429) {
+          const retryAfter = this.getRetryAfter(response.headers);
+          if (attempt < maxAttempts) {
+            this.debug(`Rate limited, waiting ${retryAfter}ms before retry`);
+            await this.sleep(retryAfter);
+            continue;
+          }
+          throw {{pascalCase serviceName}}Errors.rateLimitError(
+            Math.ceil(retryAfter / 1000),
+            this.rateLimit ?? { remaining: 0, reset: Date.now() + retryAfter }
+          );
+        }
+
+        // Lê o corpo da resposta
+        const data = await this.parseResponse<T>(response);
+
+        // Trata respostas de erro
+        if (!response.ok) {
+          throw this.handleErrorResponse(response.status, data);
+        }
+
+        return {
+          success: true,
+          data: data as T,
+          meta: {
+            requestId: response.headers.get('x-request-id') ?? undefined,
+            rateLimit: this.rateLimit ?? undefined,
+          },
+        };
+      } catch (error) {
+        lastError = error as Error;
+
+        // Não repete em certos erros
+        if (
+          error instanceof {{pascalCase serviceName}}Error &&
+          [
+            {{pascalCase serviceName}}ErrorCode.AUTHENTICATION_ERROR,
+            {{pascalCase serviceName}}ErrorCode.AUTHORIZATION_ERROR,
+            {{pascalCase serviceName}}ErrorCode.CONFIGURATION_ERROR,
+          ].includes(error.code)
+        ) {
+          throw error;
+        }
+
+        // Repete com backoff exponencial
+        if (attempt < maxAttempts) {
+          const delay = this.calculateBackoff(attempt);
+          this.debug(`Request failed, retrying in ${delay}ms: ${(error as Error).message}`);
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    // Retentativas esgotadas
+    throw lastError instanceof {{pascalCase serviceName}}Error
+      ? lastError
+      : {{pascalCase serviceName}}Errors.networkError(
+          `Request failed after ${maxAttempts} attempts`,
+          lastError ?? undefined
+        );
+  }
+
+  /**
+   * Atalho para requisições GET.
+   */
+  async get<T>(endpoint: string, params?: Record<string, string | number | boolean>): Promise<T> {
+    const response = await this.request<T>(endpoint, { method: 'GET', params });
+    return response.data as T;
+  }
+
+  /**
+   * Atalho para requisições POST.
+   */
+  async post<T>(endpoint: string, body?: unknown): Promise<T> {
+    const response = await this.request<T>(endpoint, { method: 'POST', body });
+    return response.data as T;
+  }
+
+  /**
+   * Atalho para requisições PUT.
+   */
+  async put<T>(endpoint: string, body?: unknown): Promise<T> {
+    const response = await this.request<T>(endpoint, { method: 'PUT', body });
+    return response.data as T;
+  }
+
+  /**
+   * Atalho para requisições DELETE.
+   */
+  async delete<T>(endpoint: string): Promise<T> {
+    const response = await this.request<T>(endpoint, { method: 'DELETE' });
+    return response.data as T;
+  }
+
+  /**
+   * Verificação de saúde (endpoint de ping).
+   */
+  async ping(): Promise<boolean> {
+    try {
+      await this.get('/ping');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Retorna o estado atual do limite de taxa.
+   */
+  getRateLimit(): {{pascalCase serviceName}}RateLimit | null {
+    return this.rateLimit;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Métodos privados
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Monta a URL completa com os parâmetros de query.
+   */
+  private buildUrl(
+    endpoint: string,
+    params?: Record<string, string | number | boolean>
+  ): string {
+    const baseUrl = this.config.baseUrl.replace(/\/$/, '');
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = new URL(`${baseUrl}${path}`);
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, String(value));
+        }
+      });
+    }
+
+    return url.toString();
+  }
+
+  /**
+   * Retorna os cabeçalhos de autenticação.
+   */
+  private getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {};
+
+{{#each envVars}}
+{{#if this.isAuthHeader}}
+    if (this.config.{{camelCase this.name}}) {
+      headers['{{this.headerName}}'] = {{#if this.headerPrefix}}`{{this.headerPrefix}} ${this.config.{{camelCase this.name}} }`{{else}}this.config.{{camelCase this.name}}{{/if}};
+    }
+{{/if}}
+{{/each}}
+
+    return headers;
+  }
+
+  /**
+   * Fetch com suporte a tempo limite.
+   */
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+    timeout: number
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+      });
+      return response;
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        throw {{pascalCase serviceName}}Errors.timeoutError(`Request timed out after ${timeout}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
+   * Lê o corpo da resposta.
+   */
+  private async parseResponse<T>(response: Response): Promise<T | null> {
+    const contentType = response.headers.get('content-type');
+
+    if (contentType?.includes('application/json')) {
+      try {
+        return await response.json();
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Trata uma resposta de erro.
+   */
+  private handleErrorResponse(status: number, data: unknown): {{pascalCase serviceName}}Error {
+    const errorData = data as { error?: { message?: string; code?: string } } | null;
+    const message = errorData?.error?.message ?? `Request failed with status ${status}`;
+
+    switch (status) {
+      case 401:
+        return {{pascalCase serviceName}}Errors.authenticationError(message);
+      case 403:
+        return {{pascalCase serviceName}}Errors.authorizationError(message);
+      default:
+        return {{pascalCase serviceName}}Errors.apiError(status, message, errorData ?? undefined);
+    }
+  }
+
+  /**
+   * Atualiza o limite de taxa a partir dos cabeçalhos da resposta.
+   */
+  private updateRateLimit(headers: Headers): void {
+    const limit = headers.get('x-ratelimit-limit');
+    const remaining = headers.get('x-ratelimit-remaining');
+    const reset = headers.get('x-ratelimit-reset');
+
+    if (limit && remaining && reset) {
+      const parsedLimit = parseInt(limit, 10);
+      const parsedRemaining = parseInt(remaining, 10);
+      const parsedReset = parseInt(reset, 10);
+
+      if (isNaN(parsedLimit) || isNaN(parsedRemaining) || isNaN(parsedReset)) {
+        this.debug('Invalid rate limit headers received');
+        return;
+      }
+
+      this.rateLimit = {
+        limit: parsedLimit,
+        remaining: parsedRemaining,
+        reset: parsedReset * 1000, // Converte para milissegundos
+      };
+    }
+  }
+
+  /**
+   * Aguarda quando o limite de taxa foi atingido.
+   */
+  private async waitForRateLimit(): Promise<void> {
+    if (this.rateLimit && this.rateLimit.remaining <= 0) {
+      const waitTime = Math.max(0, this.rateLimit.reset - Date.now());
+      if (waitTime > 0) {
+        this.debug(`Rate limit reached, waiting ${waitTime}ms`);
+        await this.sleep(waitTime);
+      }
+    }
+  }
+
+  /**
+   * Lê o atraso de retry-after dos cabeçalhos.
+   */
+  private getRetryAfter(headers: Headers): number {
+    const retryAfter = headers.get('retry-after');
+    if (retryAfter) {
+      // Pode vir em segundos ou como data HTTP
+      const seconds = parseInt(retryAfter, 10);
+      if (!isNaN(seconds)) {
+        return seconds * 1000;
+      }
+      const date = new Date(retryAfter);
+      if (!isNaN(date.getTime())) {
+        return Math.max(0, date.getTime() - Date.now());
+      }
+    }
+    return DEFAULTS.retryBaseDelay;
+  }
+
+  /**
+   * Calcula o atraso do backoff exponencial.
+   */
+  private calculateBackoff(attempt: number): number {
+    const delay = DEFAULTS.retryBaseDelay * Math.pow(2, attempt - 1);
+    // Acrescenta variação aleatória (±25%)
+    const jitter = delay * 0.25 * (Math.random() * 2 - 1);
+    return Math.min(delay + jitter, DEFAULTS.retryMaxDelay);
+  }
+
+  /**
+   * Aguarda pelo número de milissegundos informado.
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Log de depuração.
+   */
+  private debug(message: string): void {
+    if (this.config.debug) {
+      console.debug(`[{{pascalCase serviceName}}Client] ${message}`);
+    }
+  }
+}
+{{else}}
+// Este arquivo só é gerado em integrações de API (isApiIntegration: true)
+export {};
+{{/if}}

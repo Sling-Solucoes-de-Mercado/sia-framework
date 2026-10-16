@@ -1,0 +1,124 @@
+{{!-- Template do ponto de entrada do serviço, renderizado por *create-service.
+     Exporta tipos, erros, o cliente (só em api-integration) e a fábrica create{Nome}Service.
+     Placeholders: serviceName, description, storyId, isApiIntegration,
+     envVars[] (name, required, sensitive). --}}
+/**
+ * @module {{kebabCase serviceName}}
+ * @description {{description}}
+ * @story {{storyId}}
+ */
+
+// Reexporta os tipos
+export * from './types';
+
+// Reexporta os erros
+export * from './errors';
+
+{{#if isApiIntegration}}
+// Reexporta o cliente (só em integrações de API)
+export { {{pascalCase serviceName}}Client } from './client';
+{{/if}}
+
+import type { {{pascalCase serviceName}}Config, {{pascalCase serviceName}}Service } from './types';
+import { {{pascalCase serviceName}}Error, {{pascalCase serviceName}}ErrorCode } from './errors';
+{{#if isApiIntegration}}
+import { {{pascalCase serviceName}}Client } from './client';
+{{/if}}
+
+/**
+ * Cria uma nova instância do serviço {{pascalCase serviceName}}.
+ *
+ * @param config - Configuração do serviço
+ * @returns Instância configurada do serviço
+ * @throws { {{pascalCase serviceName}}Error } Se a configuração for inválida
+ *
+ * @example
+ * ```typescript
+ * const service = create{{pascalCase serviceName}}Service({
+ *   // opções de configuração
+ * });
+ *
+ * const result = await service.execute();
+ * ```
+ */
+export function create{{pascalCase serviceName}}Service(
+  config: {{pascalCase serviceName}}Config
+): {{pascalCase serviceName}}Service {
+  // Valida a configuração
+  validateConfig(config);
+
+{{#if isApiIntegration}}
+  // Cria o cliente da API
+  const client = new {{pascalCase serviceName}}Client(config);
+
+{{/if}}
+  return {
+    /**
+     * Executa a operação principal do serviço.
+     */
+    async execute(): Promise<void> {
+      // TODO: implementar a operação principal
+      throw new {{pascalCase serviceName}}Error(
+        'Not implemented',
+        {{pascalCase serviceName}}ErrorCode.NOT_IMPLEMENTED
+      );
+    },
+
+    /**
+     * Retorna a configuração atual (sem valores sensíveis).
+     */
+    getConfig(): Partial<{{pascalCase serviceName}}Config> {
+      return {
+        // Retorna só os valores não sensíveis
+{{#each envVars}}
+{{#unless this.sensitive}}
+        {{camelCase this.name}}: config.{{camelCase this.name}},
+{{/unless}}
+{{/each}}
+      };
+    },
+
+    /**
+     * Verifica se o serviço está configurado e operacional.
+     */
+    async healthCheck(): Promise<boolean> {
+      try {
+{{#if isApiIntegration}}
+        // Verifica a conectividade com a API
+        await client.ping();
+{{/if}}
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  };
+}
+
+/**
+ * Valida a configuração do serviço.
+ * @throws { {{pascalCase serviceName}}Error } Se a configuração for inválida
+ */
+function validateConfig(config: {{pascalCase serviceName}}Config): void {
+  if (!config) {
+    throw new {{pascalCase serviceName}}Error(
+      'Configuration is required',
+      {{pascalCase serviceName}}ErrorCode.CONFIGURATION_ERROR
+    );
+  }
+
+{{#each envVars}}
+{{#if this.required}}
+  if (config.{{camelCase this.name}} === undefined || config.{{camelCase this.name}} === null) {
+    throw new {{pascalCase serviceName}}Error(
+      '{{this.name}} is required',
+      {{pascalCase serviceName}}ErrorCode.CONFIGURATION_ERROR
+    );
+  }
+
+{{/if}}
+{{/each}}
+}
+
+// Exportação padrão
+export default create{{pascalCase serviceName}}Service;

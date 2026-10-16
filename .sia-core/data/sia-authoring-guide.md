@@ -142,6 +142,8 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | PRD | `docs/prd.md` (fragmentado em `docs/prd/`) |
 | Epics | `docs/prd/epic-{n}-{slug}.md` |
 | Arquitetura | `docs/architecture.md` (fragmentada em `docs/architecture/`) |
+| Documentação de projeto existente (`*document-project`) | `docs/brownfield-architecture.md` |
+| Análise de código existente (`*analyze-codebase`) | `docs/architecture/project-analysis.md`, `docs/architecture/recommended-approach.md` |
 | ADRs | `docs/architecture/adr/ADR-{nnn}-{slug}.md` |
 | Stories | `docs/stories/{epic}.{story}-{slug}.story.md` |
 | Backlog | `docs/stories/backlog.md` |
@@ -193,7 +195,9 @@ Regras:
 
 - O executor declarado na seção `## Executor` é `@dev` [chapéu] por padrão, `@devops` em stories de infraestrutura (CI/CD, deploy) e `@pm` [Análise] em stories de pesquisa. Só ele faz Ready → InProgress → InReview.
 - Toda transição é registrada no `## Change Log` da story: data, agente no formato `@agente [Chapéu]`, de → para, motivo.
-- O `@devops` nunca muda status de story.
+- O `@devops` não muda status de story, exceto como executor declarado de story de infraestrutura.
+- Inspeção `reprovado` antes do gate: o `@dev` corrige com `*apply-qa-fixes` mantendo a story em `InReview`, registra uma linha no Change Log e pede nova inspeção. Gate `FAIL`: a story volta para `InProgress` e o `@dev` a devolve para `InReview` depois das correções.
+- Story de pesquisa (entregável documental) não passa por inspeção: vai direto ao `*qa-gate`.
 - Story em `Draft` depois de um GO é violação de processo.
 
 ### 6.1 Seções canônicas do arquivo de story

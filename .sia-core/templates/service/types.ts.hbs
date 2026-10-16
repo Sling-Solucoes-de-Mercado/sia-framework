@@ -1,0 +1,148 @@
+{{!-- Template das definições de tipo do serviço, renderizado por *create-service.
+     Placeholders: serviceName, storyId, isApiIntegration, apiBaseUrl,
+     envVars[] (name, description, required). --}}
+/**
+ * Definições de tipo do serviço {{pascalCase serviceName}}.
+ * @module {{kebabCase serviceName}}/types
+ * @story {{storyId}}
+ */
+
+/**
+ * Opções de configuração do serviço {{pascalCase serviceName}}.
+ */
+export interface {{pascalCase serviceName}}Config {
+{{#each envVars}}
+  /**
+   * {{this.description}}
+   {{#if this.required}}
+   * @required
+   {{/if}}
+   */
+  {{camelCase this.name}}{{#unless this.required}}?{{/unless}}: string;
+
+{{/each}}
+{{#if isApiIntegration}}
+  /**
+   * URL base da API.
+   * @default '{{apiBaseUrl}}'
+   */
+  baseUrl?: string;
+
+  /**
+   * Tempo limite da requisição, em milissegundos.
+   * @default 30000
+   */
+  timeout?: number;
+
+  /**
+   * Número máximo de retentativas.
+   * @default 3
+   */
+  maxRetries?: number;
+
+  /**
+   * Ativa o log de depuração.
+   * @default false
+   */
+  debug?: boolean;
+
+{{/if}}
+}
+
+/**
+ * Interface do serviço {{pascalCase serviceName}}.
+ */
+export interface {{pascalCase serviceName}}Service {
+  /**
+   * Executa a operação principal do serviço.
+   */
+  execute(): Promise<void>;
+
+  /**
+   * Retorna a configuração atual (sem valores sensíveis).
+   */
+  getConfig(): Partial<{{pascalCase serviceName}}Config>;
+
+  /**
+   * Verifica se o serviço está configurado e operacional.
+   */
+  healthCheck(): Promise<boolean>;
+}
+
+{{#if isApiIntegration}}
+/**
+ * Estrutura base de resposta da API.
+ */
+export interface {{pascalCase serviceName}}ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+  meta?: {
+    requestId?: string;
+    rateLimit?: {
+      remaining: number;
+      reset: number;
+    };
+  };
+}
+
+/**
+ * Opções de requisição para chamadas à API.
+ */
+export interface {{pascalCase serviceName}}RequestOptions {
+  /**
+   * Método HTTP.
+   */
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+  /**
+   * Cabeçalhos da requisição.
+   */
+  headers?: Record<string, string>;
+
+  /**
+   * Corpo da requisição.
+   */
+  body?: unknown;
+
+  /**
+   * Parâmetros de query.
+   */
+  params?: Record<string, string | number | boolean>;
+
+  /**
+   * Tempo limite específico desta requisição.
+   */
+  timeout?: number;
+
+  /**
+   * Desativa a retentativa em caso de falha.
+   */
+  noRetry?: boolean;
+}
+
+/**
+ * Informações de limite de taxa.
+ */
+export interface {{pascalCase serviceName}}RateLimit {
+  /**
+   * Máximo de requisições permitidas.
+   */
+  limit: number;
+
+  /**
+   * Requisições restantes na janela atual.
+   */
+  remaining: number;
+
+  /**
+   * Timestamp Unix em que o limite é reiniciado.
+   */
+  reset: number;
+}
+
+{{/if}}

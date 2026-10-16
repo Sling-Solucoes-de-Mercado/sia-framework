@@ -1,0 +1,184 @@
+{{!-- Template dos erros tipados do serviço, renderizado por *create-service.
+     Placeholders: serviceName, storyId, isApiIntegration. --}}
+/**
+ * Definições de erro do serviço {{pascalCase serviceName}}.
+ * @module {{kebabCase serviceName}}/errors
+ * @story {{storyId}}
+ */
+
+/**
+ * Códigos de erro do serviço {{pascalCase serviceName}}.
+ */
+export enum {{pascalCase serviceName}}ErrorCode {
+  /** Configuração ausente ou inválida */
+  CONFIGURATION_ERROR = 'CONFIGURATION_ERROR',
+
+  /** Problema de rede ou de conectividade */
+  NETWORK_ERROR = 'NETWORK_ERROR',
+
+  /** Operação excedeu o tempo limite */
+  TIMEOUT_ERROR = 'TIMEOUT_ERROR',
+
+  /** Funcionalidade ainda não implementada */
+  NOT_IMPLEMENTED = 'NOT_IMPLEMENTED',
+
+  /** Erro desconhecido ou inesperado */
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+
+{{#if isApiIntegration}}
+  /** Limite de taxa da API excedido */
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
+
+  /** Falha de autenticação na API */
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
+
+  /** Falha de autorização na API */
+  AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
+
+  /** A API retornou uma resposta de erro */
+  API_ERROR = 'API_ERROR',
+
+  /** Formato de resposta da API inválido */
+  INVALID_RESPONSE = 'INVALID_RESPONSE',
+{{/if}}
+}
+
+/**
+ * Classe de erro do serviço {{pascalCase serviceName}}.
+ */
+export class {{pascalCase serviceName}}Error extends Error {
+  /**
+   * Código do erro, para tratamento programático.
+   */
+  public readonly code: {{pascalCase serviceName}}ErrorCode;
+
+  /**
+   * Detalhes adicionais do erro.
+   */
+  public readonly details?: Record<string, unknown>;
+
+  /**
+   * Erro original que causou este erro.
+   */
+  public readonly cause?: Error;
+
+{{#if isApiIntegration}}
+  /**
+   * Código de status HTTP (em erros de API).
+   */
+  public readonly statusCode?: number;
+
+  /**
+   * Informações de limite de taxa (em erros de limite de taxa).
+   */
+  public readonly rateLimit?: {
+    remaining: number;
+    reset: number;
+  };
+{{/if}}
+
+  constructor(
+    message: string,
+    code: {{pascalCase serviceName}}ErrorCode = {{pascalCase serviceName}}ErrorCode.UNKNOWN_ERROR,
+    options?: {
+      details?: Record<string, unknown>;
+      cause?: Error;
+{{#if isApiIntegration}}
+      statusCode?: number;
+      rateLimit?: { remaining: number; reset: number };
+{{/if}}
+    }
+  ) {
+    super(message);
+    this.name = '{{pascalCase serviceName}}Error';
+    this.code = code;
+    this.details = options?.details;
+    this.cause = options?.cause;
+{{#if isApiIntegration}}
+    this.statusCode = options?.statusCode;
+    this.rateLimit = options?.rateLimit;
+{{/if}}
+
+    // Mantém o stack trace apontando para onde o erro foi lançado
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, {{pascalCase serviceName}}Error);
+    }
+  }
+
+  /**
+   * Retorna a representação do erro em JSON.
+   */
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      details: this.details,
+      cause: this.cause ? { name: this.cause.name, message: this.cause.message } : undefined,
+{{#if isApiIntegration}}
+      statusCode: this.statusCode,
+      rateLimit: this.rateLimit,
+{{/if}}
+    };
+  }
+}
+
+/**
+ * Funções de fábrica para criar erros tipados.
+ */
+export const {{pascalCase serviceName}}Errors = {
+  /**
+   * Cria um erro de configuração.
+   */
+  configurationError(message: string, details?: Record<string, unknown>): {{pascalCase serviceName}}Error {
+    return new {{pascalCase serviceName}}Error(message, {{pascalCase serviceName}}ErrorCode.CONFIGURATION_ERROR, { details });
+  },
+
+  /**
+   * Cria um erro de rede.
+   */
+  networkError(message: string, cause?: Error): {{pascalCase serviceName}}Error {
+    return new {{pascalCase serviceName}}Error(message, {{pascalCase serviceName}}ErrorCode.NETWORK_ERROR, { cause });
+  },
+
+  /**
+   * Cria um erro de tempo limite.
+   */
+  timeoutError(message: string, details?: Record<string, unknown>): {{pascalCase serviceName}}Error {
+    return new {{pascalCase serviceName}}Error(message, {{pascalCase serviceName}}ErrorCode.TIMEOUT_ERROR, { details });
+  },
+
+{{#if isApiIntegration}}
+  /**
+   * Cria um erro de limite de taxa.
+   */
+  rateLimitError(retryAfter: number, rateLimit: { remaining: number; reset: number }): {{pascalCase serviceName}}Error {
+    return new {{pascalCase serviceName}}Error(
+      `Rate limit exceeded. Retry after ${retryAfter} seconds.`,
+      {{pascalCase serviceName}}ErrorCode.RATE_LIMIT_EXCEEDED,
+      { statusCode: 429, rateLimit }
+    );
+  },
+
+  /**
+   * Cria um erro de autenticação.
+   */
+  authenticationError(message: string = 'Authentication failed'): {{pascalCase serviceName}}Error {
+    return new {{pascalCase serviceName}}Error(message, {{pascalCase serviceName}}ErrorCode.AUTHENTICATION_ERROR, { statusCode: 401 });
+  },
+
+  /**
+   * Cria um erro de autorização.
+   */
+  authorizationError(message: string = 'Access denied'): {{pascalCase serviceName}}Error {
+    return new {{pascalCase serviceName}}Error(message, {{pascalCase serviceName}}ErrorCode.AUTHORIZATION_ERROR, { statusCode: 403 });
+  },
+
+  /**
+   * Cria um erro de API a partir da resposta.
+   */
+  apiError(statusCode: number, message: string, details?: Record<string, unknown>): {{pascalCase serviceName}}Error {
+    return new {{pascalCase serviceName}}Error(message, {{pascalCase serviceName}}ErrorCode.API_ERROR, { statusCode, details });
+  },
+{{/if}}
+};

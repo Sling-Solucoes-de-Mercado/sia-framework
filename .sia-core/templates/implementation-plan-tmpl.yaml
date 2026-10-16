@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────
+# Template: plano de implementação (implementation.yaml)
+#
+# Usado por: @dev [Arquitetura] em *create-plan {storyId} (task create-plan.md)
+# Saída:     docs/stories/{storyId}/spec/implementation.yaml
+# Consumido: *develop {storyId}, que segue as subtasks e atualiza o status
+#
+# Placeholders: {{storyId}}, {{createdAt}}, {{complexity}}, {{estimatedEffort}},
+#   {{dependencyName}}, {{dependencyVersion}}, {{dependencyPurpose}},
+#   {{phaseName}}, {{phaseDescription}}, {{subtaskDescription}}, {{service}},
+#   {{filePath}}, {{verificationCommand}}, {{subtaskNotes}}
+#
+# Regras:
+#   - Uma subtask atende um único serviço: frontend | backend | database | infra
+#   - De 1 a 3 arquivos por subtask; precisando de mais, divida
+#   - Toda subtask tem verificação (command | api | browser | e2e | manual)
+#   - Ids de subtask "{fase}.{n}" (1.1, 2.3); ids de fase "phase-{n}" em sequência
+#   - Descrição: ação + alvo + propósito, com pelo menos 10 caracteres
+#   - Ordem de dependência: database → backend → frontend → integração
+#   - Fases por classe: SIMPLE 2 · STANDARD 4 · COMPLEX 6 (ver create-plan.md)
+# ─────────────────────────────────────────────────────────────
+
+storyId: '{{storyId}}'                    # ex.: '2.1'
+createdAt: '{{createdAt}}'                # ISO-8601, ex.: '2026-10-16T10:00:00-03:00'
+createdBy: '@dev (Davi) [Arquitetura]'
+status: pending                           # pending | in_progress | completed | blocked
+complexity: '{{complexity}}'              # SIMPLE | STANDARD | COMPLEX (de complexity.json; padrão STANDARD)
+estimatedEffort: '{{estimatedEffort}}'    # ex.: '1 a 3 dias'
+
+# Dependências externas a instalar. Sem dependências: dependencies: []
+dependencies:
+  - name: '{{dependencyName}}'            # ex.: google-auth-library
+    version: '{{dependencyVersion}}'      # ex.: '^9.0.0'
+    purpose: '{{dependencyPurpose}}'      # por que é necessária
+
+phases:
+  - id: phase-1                           # phase-{n}
+    name: '{{phaseName}}'                 # ex.: Setup
+    description: '{{phaseDescription}}'   # o que a fase entrega
+    subtasks:
+      - id: '1.1'                         # {fase}.{n}
+        description: '{{subtaskDescription}}'
+        service: '{{service}}'            # frontend | backend | database | infra
+        files:                            # 1 a 3 arquivos
+          - '{{filePath}}'
+        verification:
+          type: command                   # command | api | browser | e2e | manual
+          command: '{{verificationCommand}}'
+          # Campos por tipo:
+          #   command: command (ex.: npm run typecheck)
+          #   api:     url, method (GET|POST|PUT|PATCH|DELETE), expectedStatus (ex.: 200)
+          #   browser: url, actions (lista de passos a conferir)
+          #   e2e:     testFile, command
+          #   manual:  instructions
+        status: pending                   # pending | in_progress | completed | failed | blocked
+        dependencies: []                  # ids de subtasks que precisam terminar antes, ex.: ['1.1']
+        notes: '{{subtaskNotes}}'         # contexto para quem implementa; raio de impacto alto entra aqui
+        # Durante o *develop: status passa a completed e completedAt recebe a data (ISO-8601)
