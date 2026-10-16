@@ -1,5 +1,6 @@
 ---
 description: Ciclo de vida da story no SIA (transições de status, executor declarado, validação de 10 pontos, inspeção, 7 verificações do QA gate e quem edita cada seção)
+embed: full   # embutida por inteiro no AGENTS.md, GEMINI.md e .grok/rules (as demais entram como resumo)
 paths:
   - "docs/stories/**"
   - "docs/qa/**"

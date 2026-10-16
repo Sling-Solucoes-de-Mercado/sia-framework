@@ -635,12 +635,13 @@ Chaves de passo aceitas além do exemplo: `command` (comando do agente, ex.: `*d
 
 ## 12. Formato de regra
 
-Arquivo `.sia-core/rules/{nome}.md`. Projetado em `.claude/rules/`, `.codex/` (via AGENTS.md), `.gemini/` (via GEMINI.md) e `.grok/rules/`.
+Arquivo `.sia-core/rules/{nome}.md`. Projetado em `.claude/rules/` (arquivo inteiro), e no `AGENTS.md` (Codex), no `GEMINI.md` e em `.grok/rules/sia-core.md` (inteiro com `embed: full`; resumo nos demais casos). Use `embed: full` só nas regras essenciais: o Codex lê até 32 KiB do `AGENTS.md`.
 
 ```markdown
 ---
 description: Uma linha explicando quando a regra se aplica
 paths: []        # opcional; globs que restringem quando a regra carrega (Claude Code)
+embed: full      # opcional; embute o corpo inteiro no AGENTS.md, GEMINI.md e .grok/rules (sem a chave, entra só um resumo)
 ---
 
 # {Título da regra}

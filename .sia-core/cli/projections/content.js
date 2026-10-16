@@ -213,7 +213,12 @@ function demoteHeadings(markdown, by) {
     .join('\n');
 }
 
-/** Bloco com o corpo das regras (Codex, Gemini e Grok não têm pasta de regras do SIA). */
+/**
+ * Bloco de regras para IDEs sem pasta de regras do SIA (Codex, Gemini e Grok).
+ * Regras com `embed: full` no frontmatter entram com o corpo inteiro; as demais entram
+ * como resumo (título, quando se aplica e caminho), para caber no limite de contexto
+ * das IDEs (o Codex lê até 32 KiB do AGENTS.md).
+ */
 function rulesBlock(ctx) {
   const lines = ['## Regras do SIA', ''];
   const rules = ctx.rules.filter((rule) => !rule.error);
@@ -221,15 +226,29 @@ function rulesBlock(ctx) {
     lines.push('Nenhuma regra em `.sia-core/rules/` ainda.');
     return { id: 'sia-rules', content: lines.join('\n') };
   }
-  lines.push('Conteúdo normativo de `.sia-core/rules/` (DEVE, NÃO DEVE, DEVERIA).');
-  for (const rule of rules) {
+  const parsed = rules.map((rule) => {
     const body = String(rule.body || '').replace(/^\s+/, '');
     const h1 = body.match(/^#\s+(.+)\n?/);
-    const title = h1 ? h1[1].trim() : rule.name;
-    const rest = h1 ? body.slice(h1[0].length) : body;
-    const description = rule.frontmatter && rule.frontmatter.description ? String(rule.frontmatter.description).trim() : '';
-    lines.push('', `### ${title}`, '', `> Fonte: \`.sia-core/rules/${rule.name}.md\`${description ? `. Quando se aplica: ${description}` : ''}`, '');
-    lines.push(demoteHeadings(rest.trim(), 2));
+    const fm = rule.frontmatter || {};
+    return {
+      name: rule.name,
+      title: h1 ? h1[1].trim() : rule.name,
+      rest: h1 ? body.slice(h1[0].length) : body,
+      description: fm.description ? String(fm.description).trim() : '',
+      full: String(fm.embed || '').trim().toLowerCase() === 'full',
+    };
+  });
+  lines.push('Conteúdo normativo de `.sia-core/rules/` (DEVE, NÃO DEVE, DEVERIA).');
+  for (const rule of parsed.filter((r) => r.full)) {
+    lines.push('', `### ${rule.title}`, '', `> Fonte: \`.sia-core/rules/${rule.name}.md\`${rule.description ? `. Quando se aplica: ${rule.description}` : ''}`, '');
+    lines.push(demoteHeadings(rule.rest.trim(), 2));
+  }
+  const summaries = parsed.filter((r) => !r.full);
+  if (summaries.length > 0) {
+    lines.push('', '### Outras regras', '', 'Leia o arquivo completo antes de executar um comando ligado ao assunto da regra.', '');
+    for (const rule of summaries) {
+      lines.push(`- **${rule.title}** (\`.sia-core/rules/${rule.name}.md\`)${rule.description ? `: ${rule.description}` : ''}`);
+    }
   }
   return { id: 'sia-rules', content: lines.join('\n') };
 }

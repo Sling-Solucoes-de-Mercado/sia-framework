@@ -1,5 +1,6 @@
 ---
 description: Autoridade exclusiva dos agentes
+embed: full
 paths: []
 ---
 

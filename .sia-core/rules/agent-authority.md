@@ -1,5 +1,6 @@
 ---
 description: Matriz de autoridade dos 5 agentes do SIA, operações exclusivas, bloqueios e fluxos de delegação
+embed: full   # embutida por inteiro no AGENTS.md, GEMINI.md e .grok/rules (as demais entram como resumo)
 ---
 
 # Autoridade dos Agentes

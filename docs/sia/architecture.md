@@ -65,9 +65,11 @@ A CLI não tem dependências instaladas: o `js-yaml` vai embutido em `cli/vendor
 | IDE | Projeção |
 |-----|----------|
 | Claude Code | `.claude/skills/sia-*`, `.claude/commands/SIA/agents/*`, `.claude/agents/sia-*` (subagentes), `.claude/rules/sia-*`, hooks em `.claude/settings.json`, `CLAUDE.md` |
-| Codex (ChatGPT) | `AGENTS.md` (com as regras embutidas), `.codex/skills/sia-*` |
+| Codex (ChatGPT) | `AGENTS.md` (regras essenciais embutidas, demais resumidas), `.agents/skills/sia-*`, hooks em `.codex/hooks.json` |
 | Gemini CLI | `.gemini/commands/sia-*.toml`, `GEMINI.md`, hooks em `.gemini/settings.json` (se suportado) |
 | Grok Build | `.grok/skills/sia-*`, `.grok/agents/sia-*`, `.grok/hooks/sia-*.json`, `.grok/rules/sia-core.md` |
+
+O `AGENTS.md`, o `GEMINI.md` e o `.grok/rules/sia-core.md` embutem por inteiro só as regras marcadas com `embed: full` (autoridade e ciclo da story); as demais entram como resumo com o caminho do arquivo. Assim o `AGENTS.md` fica abaixo do limite de 32 KiB que o Codex lê por padrão.
 
 Cada pasta de IDE tem um `sia-managed.json` com os arquivos gerados e seus hashes. `sia sync --check` aponta divergência, e arquivos não gerenciados nunca são tocados.
 
@@ -135,7 +137,7 @@ sia-framework/                  # repositório-fonte do SIA
     └── porting-map.yaml        # rastreabilidade AIOX → SIA
 ```
 
-No repositório-fonte, as projeções (`.claude/`, `.codex/`, `.gemini/`, `.grok/`, `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) ficam fora do git, porque são geradas. Nos projetos que usam o SIA, elas são versionadas junto com o `.sia-core/`.
+No repositório-fonte, as projeções (`.claude/`, `.codex/`, `.agents/`, `.gemini/`, `.grok/`, `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) ficam fora do git, porque são geradas. Nos projetos que usam o SIA, elas são versionadas junto com o `.sia-core/`.
 
 ---
 

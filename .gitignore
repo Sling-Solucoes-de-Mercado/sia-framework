@@ -32,6 +32,7 @@ Thumbs.db
 # Projeções geradas pelo `sia sync` a partir de .sia-core/
 .claude/
 .codex/
+.agents/
 .gemini/
 .grok/
 .mcp.json

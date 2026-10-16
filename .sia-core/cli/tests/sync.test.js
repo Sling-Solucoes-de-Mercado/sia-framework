@@ -234,6 +234,10 @@ test('sync Codex: skills em .agents/skills, AGENTS.md com regras e hooks.json', 
   assert.match(agentsMd, /SIA-MANAGED-START: sia-rules/);
   assert.match(agentsMd, /### Autoridade dos agentes/);
   assert.match(agentsMd, /#### Push/);
+  // Regras sem `embed: full` entram só como resumo, para caber no limite de 32 KiB do Codex.
+  assert.match(agentsMd, /### Outras regras/);
+  assert.match(agentsMd, /- \*\*Uso de ferramentas\*\* \(`\.sia-core\/rules\/tool-usage\.md`\): Prioridade de ferramentas/);
+  assert.doesNotMatch(agentsMd, /Prefira ferramentas nativas\./);
   assert.match(agentsMd, /`@lance`/);
   assert.match(agentsMd, /`\.sia-core\/agents\/devops\.md`/);
   const hooks = JSON.parse(read(target, '.codex/hooks.json'));

@@ -98,7 +98,7 @@ Resolução de dependência: `{type}/{name}` → `.sia-core/{type}/{name}`. Num 
   - regras `sia-*`
   - hooks em `.claude/settings.json`
   - `CLAUDE.md`
-- **Codex:** `AGENTS.md` (com as regras) e `.codex/skills/`.
+- **Codex:** `AGENTS.md` (regras essenciais embutidas, demais resumidas), skills em `.agents/skills/` e hooks em `.codex/hooks.json`.
 - **Gemini:** `.gemini/commands/*.toml` (`/sia-menu`), `GEMINI.md` e hooks em `.gemini/settings.json` quando suportados.
 - **Grok:** `.grok/skills/`, `.grok/agents/`, `.grok/hooks/*.json` e `.grok/rules/sia-core.md`.
 - **Regra:** nunca edite projeções à mão (Artigo VII).
