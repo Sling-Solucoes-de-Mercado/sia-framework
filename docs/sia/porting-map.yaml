@@ -1,0 +1,273 @@
+# ─────────────────────────────────────────────────────────────
+# SIA ← AIOX: mapa de portabilidade
+#
+# Cada artefato do SIA, sua origem no AIOX (rastreabilidade) e o lote de
+# construção. Caminhos de origem são relativos a .aiox-core/ quando não
+# indicado o contrário. "new" = artefato novo, sem origem no AIOX.
+#
+# Lotes (batch):
+#   B0  fundação (constitution, config, agentes, guia)
+#   B1  @pm produto/análise/orquestração + tasks compartilhadas
+#   B2  @pm stories/backlog/qualidade
+#   B3  @dev desenvolvimento + arquitetura
+#   B4  @dev dados (Supabase)
+#   B5  @dev UX/UI
+#   B6  @devops + facilitador de MCP + Vercel
+#   B7  @squad-creator (squads + construção de framework)
+#   B8  templates, checklists e data de @pm e @dev (núcleo)
+#   B9  @validator + workflows + regras + workflow-chains
+#   B10 CLI, hooks, skills e projeções de IDE
+# ─────────────────────────────────────────────────────────────
+
+agents:
+  pm:            { name: Mira,  batch: B0, source: [development/agents/pm.md, development/agents/po.md, development/agents/sm.md, development/agents/qa.md, development/agents/analyst.md, development/agents/aiox-master.md] }
+  dev:           { name: Davi,  batch: B0, source: [development/agents/dev.md, development/agents/architect.md, development/agents/data-engineer.md, development/agents/ux-design-expert.md] }
+  devops:        { name: Lance, batch: B0, source: [development/agents/devops.md] }
+  validator:     { name: Vera,  batch: B0, source: ["../.validator/METHOD.md", "../.claude/skills/validator/SKILL.md"] }
+  squad-creator: { name: Elo,   batch: B0, source: [development/agents/squad-creator.md, development/agents/aiox-master.md] }
+
+tasks:
+  # ── Compartilhadas (B1) ──────────────────────────────────────
+  create-doc:                  { agent: any, batch: B1, source: [development/tasks/create-doc.md] }
+  advanced-elicitation:        { agent: any, batch: B1, source: [development/tasks/advanced-elicitation.md] }
+  execute-checklist:           { agent: any, batch: B1, source: [development/tasks/execute-checklist.md] }
+  shard-doc:                   { agent: any, batch: B1, source: [development/tasks/shard-doc.md] }
+  create-deep-research-prompt: { agent: any, batch: B1, source: [development/tasks/create-deep-research-prompt.md] }
+  next:                        { agent: any, batch: B1, source: [development/tasks/next.md] }
+
+  # ── @pm: produto, análise, orquestração (B1) ────────────────
+  create-epic:           { agent: pm, hat: product, batch: B1, source: [development/tasks/brownfield-create-epic.md] }
+  execute-epic:          { agent: pm, hat: product, batch: B1, source: [development/tasks/execute-epic-plan.md, development/tasks/waves.md] }
+  correct-course:        { agent: pm, hat: product, batch: B1, source: [development/tasks/correct-course.md] }
+  gather-requirements:   { agent: pm, hat: product, batch: B1, source: [development/tasks/spec-gather-requirements.md] }
+  write-spec:            { agent: pm, hat: product, batch: B1, source: [development/tasks/spec-write-spec.md] }
+  critique-spec:         { agent: pm, hat: quality, batch: B1, source: [development/tasks/spec-critique.md] }
+  run-workflow:          { agent: pm, hat: product, batch: B1, source: [development/tasks/run-workflow.md] }
+  project-status:        { agent: pm, hat: owner,   batch: B1, source: [development/tasks/project-status.md, development/tasks/init-project-status.md] }
+  brainstorm:            { agent: pm, hat: analyst, batch: B1, source: [development/tasks/facilitate-brainstorming-session.md, development/tasks/analyst-facilitate-brainstorming.md] }
+  research-dependencies: { agent: pm, hat: analyst, batch: B1, source: [development/tasks/spec-research-dependencies.md] }
+
+  # ── @pm: stories, backlog, qualidade (B2) ───────────────────
+  create-story:            { agent: pm, hat: scrum,   batch: B2, source: [development/tasks/create-next-story.md, development/tasks/sm-create-next-story.md] }
+  create-brownfield-story: { agent: pm, hat: scrum,   batch: B2, source: [development/tasks/brownfield-create-story.md, development/tasks/create-brownfield-story.md] }
+  validate-story:          { agent: pm, hat: owner,   batch: B2, source: [development/tasks/validate-next-story.md] }
+  manage-backlog:          { agent: pm, hat: owner,   batch: B2, source: [development/tasks/po-manage-story-backlog.md, development/tasks/po-backlog-add.md, development/tasks/qa-backlog-add-followup.md] }
+  stories-index:           { agent: pm, hat: owner,   batch: B2, source: [development/tasks/po-stories-index.md] }
+  close-story:             { agent: pm, hat: owner,   batch: B2, source: [development/tasks/po-close-story.md] }
+  qa-gate:                 { agent: pm, hat: quality, batch: B2, source: [development/tasks/qa-gate.md, development/tasks/qa-review-story.md, development/tasks/qa-evidence-requirements.md, development/tasks/qa-false-positive-detection.md] }
+  nfr-assess:              { agent: pm, hat: quality, batch: B2, source: [development/tasks/qa-nfr-assess.md] }
+  risk-profile:            { agent: pm, hat: quality, batch: B2, source: [development/tasks/qa-risk-profile.md] }
+  test-design:             { agent: pm, hat: quality, batch: B2, source: [development/tasks/qa-test-design.md] }
+  trace-requirements:      { agent: pm, hat: quality, batch: B2, source: [development/tasks/qa-trace-requirements.md] }
+  create-fix-request:      { agent: pm, hat: quality, batch: B2, source: [development/tasks/qa-create-fix-request.md] }
+  qa-loop:                 { agent: pm, hat: quality, batch: B2, source: [development/workflows/qa-loop.yaml] }
+
+  # ── @dev: desenvolvimento (B3) ──────────────────────────────
+  develop-story:        { agent: dev, hat: dev, batch: B3, source: [development/tasks/dev-develop-story.md, development/tasks/plan-execute-subtask.md, development/tasks/verify-subtask.md] }
+  apply-qa-fixes:       { agent: dev, hat: dev, batch: B3, source: [development/tasks/apply-qa-fixes.md, development/tasks/dev-apply-qa-fixes.md, development/tasks/qa-fix-issues.md] }
+  improve-code:         { agent: dev, hat: dev, batch: B3, source: [development/tasks/dev-improve-code-quality.md, development/tasks/dev-suggest-refactoring.md] }
+  optimize-performance: { agent: dev, hat: dev, batch: B3, source: [development/tasks/dev-optimize-performance.md] }
+  tech-debt:            { agent: dev, hat: dev, batch: B3, source: [development/tasks/dev-backlog-debt.md] }
+  gotchas:              { agent: dev, hat: dev, batch: B3, source: [development/tasks/gotcha.md, development/tasks/gotchas.md, development/tasks/document-gotchas.md] }
+  generate-tests:       { agent: dev, hat: dev, batch: B3, source: [development/tasks/qa-generate-tests.md, development/tasks/create-suite.md] }
+  run-tests:            { agent: dev, hat: dev, batch: B3, source: [development/tasks/qa-run-tests.md] }
+  create-service:       { agent: dev, hat: dev, batch: B3, source: [development/tasks/create-service.md] }
+  # ── @dev: arquitetura (B3) ──────────────────────────────────
+  analyze-impact:       { agent: dev, hat: architect, batch: B3, source: [development/tasks/architect-analyze-impact.md] }
+  analyze-codebase:     { agent: dev, hat: architect, batch: B3, source: [development/tasks/analyze-project-structure.md, development/tasks/analyze-brownfield.md] }
+  document-project:     { agent: dev, hat: architect, batch: B3, source: [development/tasks/document-project.md] }
+  assess-complexity:    { agent: dev, hat: architect, batch: B3, source: [development/tasks/spec-assess-complexity.md] }
+  create-plan:          { agent: dev, hat: architect, batch: B3, source: [development/tasks/plan-create-implementation.md] }
+  create-context:       { agent: dev, hat: architect, batch: B3, source: [development/tasks/plan-create-context.md] }
+  validate-tech-preset: { agent: dev, hat: architect, batch: B3, source: [development/tasks/validate-tech-preset.md] }
+
+  # ── @dev: dados / Supabase (B4) ─────────────────────────────
+  db-setup:            { agent: dev, hat: data, batch: B4, source: [development/tasks/setup-database.md, development/tasks/db-supabase-setup.md, development/tasks/db-env-check.md, development/tasks/db-bootstrap.md] }
+  db-domain-modeling:  { agent: dev, hat: data, batch: B4, source: [development/tasks/db-domain-modeling.md] }
+  db-migrate:          { agent: dev, hat: data, batch: B4, source: [development/tasks/db-apply-migration.md, development/tasks/db-dry-run.md, development/tasks/db-snapshot.md, development/tasks/db-verify-order.md] }
+  db-rollback:         { agent: dev, hat: data, batch: B4, source: [development/tasks/db-rollback.md] }
+  db-seed:             { agent: dev, hat: data, batch: B4, source: [development/tasks/db-seed.md, development/tasks/db-load-csv.md] }
+  db-smoke-test:       { agent: dev, hat: data, batch: B4, source: [development/tasks/db-smoke-test.md] }
+  db-security-audit:   { agent: dev, hat: data, batch: B4, source: [development/tasks/security-audit.md, development/tasks/db-rls-audit.md, development/tasks/db-schema-audit.md] }
+  db-policy-apply:     { agent: dev, hat: data, batch: B4, source: [development/tasks/db-policy-apply.md] }
+  db-test-as-user:     { agent: dev, hat: data, batch: B4, source: [development/tasks/test-as-user.md, development/tasks/db-impersonate.md] }
+  db-performance:      { agent: dev, hat: data, batch: B4, source: [development/tasks/analyze-performance.md, development/tasks/db-explain.md, development/tasks/db-analyze-hotpaths.md] }
+  db-run-sql:          { agent: dev, hat: data, batch: B4, source: [development/tasks/db-run-sql.md] }
+
+  # ── @dev: UX/UI (B5) ────────────────────────────────────────
+  ux-research:           { agent: dev, hat: ux, batch: B5, source: [development/tasks/ux-user-research.md] }
+  ux-wireframe:          { agent: dev, hat: ux, batch: B5, source: [development/tasks/ux-create-wireframe.md] }
+  ux-ai-frontend-prompt: { agent: dev, hat: ux, batch: B5, source: [development/tasks/generate-ai-frontend-prompt.md] }
+  ux-design-system:      { agent: dev, hat: ux, batch: B5, source: [development/tasks/setup-design-system.md, development/tasks/bootstrap-shadcn-library.md, development/tasks/extract-tokens.md, development/tasks/export-design-tokens-dtcg.md] }
+  ux-build-component:    { agent: dev, hat: ux, batch: B5, source: [development/tasks/build-component.md, development/tasks/compose-molecule.md, development/tasks/extend-pattern.md] }
+  ux-audit:              { agent: dev, hat: ux, batch: B5, source: [development/tasks/audit-codebase.md, development/tasks/consolidate-patterns.md, development/tasks/generate-shock-report.md, development/tasks/ux-ds-scan-artifact.md, development/tasks/audit-tailwind-config.md] }
+
+  # ── @devops (B6) ────────────────────────────────────────────
+  environment-bootstrap: { agent: devops, batch: B6, source: [development/tasks/environment-bootstrap.md, development/tasks/init-project-status.md] }
+  setup-github:          { agent: devops, batch: B6, source: [development/tasks/setup-github.md] }
+  pre-push:              { agent: devops, batch: B6, source: [development/tasks/github-devops-pre-push-quality-gate.md] }
+  push:                  { agent: devops, batch: B6, source: [development/agents/devops.md] }
+  create-pr:             { agent: devops, batch: B6, source: [development/tasks/github-devops-github-pr-automation.md, development/tasks/pr-automation.md] }
+  release:               { agent: devops, batch: B6, source: [development/tasks/github-devops-version-management.md, development/tasks/release-management.md] }
+  configure-ci:          { agent: devops, batch: B6, source: [development/tasks/ci-cd-configuration.md] }
+  repository-cleanup:    { agent: devops, batch: B6, source: [development/tasks/github-devops-repository-cleanup.md] }
+  triage-issues:         { agent: devops, batch: B6, source: [development/tasks/triage-github-issues.md, development/tasks/github-issue-triage.md] }
+  resolve-issue:         { agent: devops, batch: B6, source: [development/tasks/resolve-github-issue.md] }
+  health-check:          { agent: devops, batch: B6, source: [development/tasks/health-check.yaml] }
+  manage-worktrees:      { agent: devops, batch: B6, source: [development/tasks/create-worktree.md, development/tasks/list-worktrees.md, development/tasks/remove-worktree.md, development/tasks/merge-worktree.md, development/tasks/cleanup-worktrees.md] }
+  setup-mcp:             { agent: devops, batch: B6, source: [new, development/tasks/add-mcp.md] }
+  vercel-setup:          { agent: devops, batch: B6, source: [new] }
+  vercel-deploy:         { agent: devops, batch: B6, source: [new] }
+
+  # ── @validator (B9) ─────────────────────────────────────────
+  inspect:               { agent: validator, batch: B9, source: ["../.validator/METHOD.md"] }
+
+  # ── @squad-creator (B7) ─────────────────────────────────────
+  design-squad:       { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-design.md] }
+  create-squad:       { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-create.md] }
+  validate-squad:     { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-validate.md] }
+  list-squads:        { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-list.md] }
+  analyze-squad:      { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-analyze.md] }
+  extend-squad:       { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-extend.md] }
+  migrate-squad:      { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-migrate.md] }
+  publish-squad:      { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-publish.md] }
+  download-squad:     { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-download.md] }
+  sync-ide:           { agent: squad-creator, batch: B7, source: [development/tasks/squad-creator-sync-ide-command.md] }
+  create-agent:       { agent: squad-creator, batch: B7, source: [development/tasks/create-agent.md] }
+  create-task:        { agent: squad-creator, batch: B7, source: [development/tasks/create-task.md] }
+  create-workflow:    { agent: squad-creator, batch: B7, source: [development/tasks/create-workflow.md] }
+  modify-agent:       { agent: squad-creator, batch: B7, source: [development/tasks/modify-agent.md] }
+  modify-task:        { agent: squad-creator, batch: B7, source: [development/tasks/modify-task.md] }
+  modify-workflow:    { agent: squad-creator, batch: B7, source: [development/tasks/modify-workflow.md] }
+  validate-framework: { agent: squad-creator, batch: B7, source: [development/tasks/validate-agents.md, development/tasks/validate-workflow.md] }
+  kb:                 { agent: squad-creator, batch: B7, source: [development/tasks/kb-mode-interaction.md] }
+
+templates:
+  # B8: @pm
+  prd-tmpl.yaml:                   { batch: B8, source: [product/templates/prd-tmpl.yaml] }
+  brownfield-prd-tmpl.yaml:        { batch: B8, source: [product/templates/brownfield-prd-tmpl.yaml] }
+  project-brief-tmpl.yaml:         { batch: B8, source: [product/templates/project-brief-tmpl.yaml] }
+  market-research-tmpl.yaml:       { batch: B8, source: [product/templates/market-research-tmpl.yaml] }
+  competitor-analysis-tmpl.yaml:   { batch: B8, source: [product/templates/competitor-analysis-tmpl.yaml] }
+  brainstorming-output-tmpl.yaml:  { batch: B8, source: [product/templates/brainstorming-output-tmpl.yaml] }
+  epic-tmpl.md:                    { batch: B8, source: [product/templates/epic.hbs] }
+  story-tmpl.yaml:                 { batch: B8, source: [product/templates/story-tmpl.yaml] }
+  qa-gate-tmpl.yaml:               { batch: B8, source: [product/templates/qa-gate-tmpl.yaml] }
+  spec-tmpl.md:                    { batch: B8, source: [product/templates/spec-tmpl.md] }
+  research-prompt-tmpl.md:         { batch: B8, source: [development/templates/research-prompt-tmpl.md] }
+  agent-handoff-tmpl.yaml:         { batch: B8, source: [development/templates/agent-handoff-tmpl.yaml] }
+  # B8: @dev [architect]
+  architecture-tmpl.yaml:            { batch: B8, source: [product/templates/architecture-tmpl.yaml] }
+  fullstack-architecture-tmpl.yaml:  { batch: B8, source: [product/templates/fullstack-architecture-tmpl.yaml] }
+  front-end-architecture-tmpl.yaml:  { batch: B8, source: [product/templates/front-end-architecture-tmpl.yaml] }
+  brownfield-architecture-tmpl.yaml: { batch: B8, source: [product/templates/brownfield-architecture-tmpl.yaml] }
+  adr-tmpl.md:                       { batch: B8, source: [product/templates/adr.hbs] }
+  implementation-plan-tmpl.yaml:     { batch: B3, source: [development/tasks/plan-create-implementation.md] }
+  # B4: @dev [data]
+  schema-design-tmpl.yaml:      { batch: B4, source: [product/templates/schema-design-tmpl.yaml] }
+  rls-policies-tmpl.yaml:       { batch: B4, source: [product/templates/rls-policies-tmpl.yaml] }
+  migration-plan-tmpl.yaml:     { batch: B4, source: [product/templates/migration-plan-tmpl.yaml] }
+  index-strategy-tmpl.yaml:     { batch: B4, source: [product/templates/index-strategy-tmpl.yaml] }
+  sql/migration.sql:            { batch: B4, source: [product/templates/tmpl-migration-script.sql] }
+  sql/rollback.sql:             { batch: B4, source: [product/templates/tmpl-rollback-script.sql] }
+  sql/smoke-test.sql:           { batch: B4, source: [product/templates/tmpl-smoke-test.sql] }
+  sql/rls-simple.sql:           { batch: B4, source: [product/templates/tmpl-rls-kiss-policy.sql, product/templates/tmpl-rls-simple.sql] }
+  sql/rls-granular.sql:         { batch: B4, source: [product/templates/tmpl-rls-granular-policies.sql, product/templates/tmpl-rls-roles.sql] }
+  sql/rls-tenant.sql:           { batch: B4, source: [product/templates/tmpl-rls-tenant.sql] }
+  sql/seed-data.sql:            { batch: B4, source: [product/templates/tmpl-seed-data.sql] }
+  sql/staging-copy-merge.sql:   { batch: B4, source: [product/templates/tmpl-staging-copy-merge.sql] }
+  sql/comment-on.sql:           { batch: B4, source: [product/templates/tmpl-comment-on-examples.sql] }
+  sql/trigger.sql:              { batch: B4, source: [product/templates/tmpl-trigger.sql] }
+  sql/view.sql:                 { batch: B4, source: [product/templates/tmpl-view.sql, product/templates/tmpl-view-materialized.sql] }
+  sql/stored-proc.sql:          { batch: B4, source: [product/templates/tmpl-stored-proc.sql] }
+  # B5: @dev [ux]
+  front-end-spec-tmpl.yaml:     { batch: B5, source: [product/templates/front-end-spec-tmpl.yaml] }
+  tokens-schema-tmpl.yaml:      { batch: B5, source: [product/templates/tokens-schema-tmpl.yaml] }
+  component-react-tmpl.tsx:     { batch: B5, source: [product/templates/component-react-tmpl.tsx] }
+  token-exports-css-tmpl.css:   { batch: B5, source: [product/templates/token-exports-css-tmpl.css] }
+  token-exports-tailwind-tmpl.js: { batch: B5, source: [product/templates/token-exports-tailwind-tmpl.js] }
+  # B6: @devops
+  github-pr-tmpl.md:            { batch: B6, source: [product/templates/github-pr-template.md] }
+  github-actions-ci.yml:        { batch: B6, source: [product/templates/github-actions-ci.yml] }
+  github-actions-cd.yml:        { batch: B6, source: [product/templates/github-actions-cd.yml] }
+  changelog-tmpl.md:            { batch: B6, source: [product/templates/changelog-template.md] }
+  # B3: @dev
+  service/:                     { batch: B3, source: [development/templates/service-template/] }
+  # B7: @squad-creator
+  agent-tmpl.md:                { batch: B7, source: [product/templates/agent-template.yaml, product/templates/personalized-agent-template.md] }
+  task-tmpl.md:                 { batch: B7, source: [product/templates/task-template.md, product/templates/personalized-task-template-v2.md] }
+  workflow-tmpl.yaml:           { batch: B7, source: [product/templates/workflow-template.yaml, product/templates/personalized-workflow-template.yaml] }
+  checklist-tmpl.md:            { batch: B7, source: [product/templates/personalized-checklist-template.md] }
+  squad/:                       { batch: B7, source: [development/templates/squad/, development/templates/squad-template/] }
+  # B9: @validator
+  inspection-report-tmpl.md:    { batch: B9, source: ["../.validator/report-template.md"] }
+
+checklists:
+  pm-checklist.md:                       { batch: B8, source: [product/checklists/pm-checklist.md] }
+  po-master-checklist.md:                { batch: B8, source: [product/checklists/po-master-checklist.md] }
+  story-draft-checklist.md:              { batch: B8, source: [product/checklists/story-draft-checklist.md] }
+  change-checklist.md:                   { batch: B8, source: [product/checklists/change-checklist.md] }
+  story-dod-checklist.md:                { batch: B8, source: [product/checklists/story-dod-checklist.md] }
+  self-critique-checklist.md:            { batch: B8, source: [product/checklists/self-critique-checklist.md, development/checklists/self-critique-checklist.md] }
+  architect-checklist.md:                { batch: B8, source: [product/checklists/architect-checklist.md] }
+  brownfield-compatibility-checklist.md: { batch: B8, source: [development/checklists/brownfield-compatibility-checklist.md] }
+  database-design-checklist.md:          { batch: B4, source: [product/checklists/database-design-checklist.md] }
+  dba-predeploy-checklist.md:            { batch: B4, source: [product/checklists/dba-predeploy-checklist.md] }
+  dba-rollback-checklist.md:             { batch: B4, source: [product/checklists/dba-rollback-checklist.md] }
+  migration-readiness-checklist.md:      { batch: B4, source: [product/checklists/migration-readiness-checklist.md] }
+  accessibility-wcag-checklist.md:       { batch: B5, source: [product/checklists/accessibility-wcag-checklist.md] }
+  component-quality-checklist.md:        { batch: B5, source: [product/checklists/component-quality-checklist.md, product/checklists/pattern-audit-checklist.md] }
+  pre-push-checklist.md:                 { batch: B6, source: [product/checklists/pre-push-checklist.md] }
+  release-checklist.md:                  { batch: B6, source: [product/checklists/release-checklist.md] }
+  agent-quality-gate.md:                 { batch: B7, source: [development/checklists/agent-quality-gate.md] }
+
+data:
+  sia-authoring-guide.md:          { batch: B0, source: [new] }
+  sia-kb.md:                       { batch: B10, source: [data/aiox-kb.md] }
+  technical-preferences.md:        { batch: B8, source: [data/technical-preferences.md] }
+  elicitation-methods.md:          { batch: B8, source: [product/data/elicitation-methods.md] }
+  brainstorming-techniques.md:     { batch: B8, source: [product/data/brainstorming-techniques.md] }
+  test-levels-framework.md:        { batch: B8, source: [product/data/test-levels-framework.md] }
+  test-priorities-matrix.md:       { batch: B8, source: [product/data/test-priorities-matrix.md] }
+  mode-selection-best-practices.md: { batch: B8, source: [product/data/mode-selection-best-practices.md] }
+  workflow-chains.yaml:            { batch: B9, source: [data/workflow-chains.yaml] }
+  inspection-lenses.md:            { batch: B9, source: ["../.validator/METHOD.md"] }
+  database-best-practices.md:      { batch: B4, source: [product/data/database-best-practices.md] }
+  supabase-patterns.md:            { batch: B4, source: [product/data/supabase-patterns.md] }
+  rls-security-patterns.md:        { batch: B4, source: [product/data/rls-security-patterns.md] }
+  migration-safety-guide.md:       { batch: B4, source: [product/data/migration-safety-guide.md] }
+  postgres-tuning-guide.md:        { batch: B4, source: [product/data/postgres-tuning-guide.md] }
+  atomic-design-principles.md:     { batch: B5, source: [product/data/atomic-design-principles.md] }
+  design-token-best-practices.md:  { batch: B5, source: [product/data/design-token-best-practices.md] }
+  wcag-compliance-guide.md:        { batch: B5, source: [product/data/wcag-compliance-guide.md] }
+  mcp-servers.yaml:                { batch: B6, source: [new] }
+  vercel-patterns.md:              { batch: B6, source: [new] }
+  decision-heuristics-framework.md: { batch: B7, source: [development/data/decision-heuristics-framework.md] }
+  quality-dimensions-framework.md: { batch: B7, source: [development/data/quality-dimensions-framework.md] }
+  tier-system-framework.md:        { batch: B7, source: [development/data/tier-system-framework.md] }
+  tech-presets/_template.md:       { batch: B3, source: [data/tech-presets/_template.md] }
+  tech-presets/nextjs-react.md:    { batch: B3, source: [data/tech-presets/nextjs-react.md] }
+
+workflows:
+  story-development-cycle.yaml: { batch: B9, source: [development/workflows/story-development-cycle.yaml] }
+  qa-loop.yaml:                 { batch: B9, source: [development/workflows/qa-loop.yaml] }
+  spec-pipeline.yaml:           { batch: B9, source: [development/workflows/spec-pipeline.yaml] }
+  epic-orchestration.yaml:      { batch: B9, source: [development/workflows/epic-orchestration.yaml] }
+  greenfield.yaml:              { batch: B9, source: [development/workflows/greenfield-fullstack.yaml, development/workflows/greenfield-service.yaml, development/workflows/greenfield-ui.yaml] }
+  brownfield.yaml:              { batch: B9, source: [development/workflows/brownfield-fullstack.yaml, development/workflows/brownfield-service.yaml, development/workflows/brownfield-ui.yaml] }
+  brownfield-discovery.yaml:    { batch: B9, source: [development/workflows/brownfield-discovery.yaml] }
+
+rules:
+  agent-authority.md:    { batch: B9, source: ["../.claude/rules/agent-authority.md"] }
+  story-lifecycle.md:    { batch: B9, source: ["../.claude/rules/story-lifecycle.md"] }
+  workflow-execution.md: { batch: B9, source: ["../.claude/rules/workflow-execution.md"] }
+  agent-handoff.md:      { batch: B9, source: ["../.claude/rules/agent-handoff.md", "../.claude/rules/handoff-consolidation.md"] }
+  mcp-usage.md:          { batch: B9, source: ["../.claude/rules/mcp-usage.md"] }
+  tool-usage.md:         { batch: B9, source: ["../.claude/rules/tool-examples.md", "../.claude/rules/tool-response-filtering.md"] }
+
+# Removidos do AIOX (não entram no SIA) e motivo
+dropped:
+  agents: { analyst: "→ @pm [analyst]", architect: "→ @dev [architect]", data-engineer: "→ @dev [data]", ux-design-expert: "→ @dev [ux]", po: "→ @pm [owner]", sm: "→ @pm [scrum]", qa: "→ @pm [quality]", aiox-master: "→ @squad-creator / @pm" }
+  integrations: [ClickUp, CodeRabbit, "Docker MCP gateway (gestão genérica de MCP)", "Pro/licenças", SYNAPSE, Code Intelligence, IDS, "Bob / TerminalSpawner", "Build autônomo", "Worktree automática"]
+  workflows: { development-cycle: "específico do Bob", auto-worktree: "worktree automática removida", design-system-build-quality: "pipeline de design system condensado em ux-design-system/ux-audit" }
+  tasks_note: "Tasks do AIOX ausentes deste mapa foram removidas por pertencerem às integrações removidas, por serem internas do desenvolvimento do AIOX ou por estarem absorvidas em outra task."

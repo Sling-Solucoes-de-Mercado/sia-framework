@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────
+# SIA Framework — repositório-fonte
+# Fonte da verdade: .sia-core/  (o resto é gerado ou é referência local)
+# ─────────────────────────────────────────────────────────────
+
+# Segredos
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Dependências
+node_modules/
+
+# Build e logs
+dist/
+build/
+coverage/
+*.log
+logs/
+
+# IDE e sistema
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Runtime do SIA (estado de sessão, handoffs, ciclo de story)
+.sia/
+
+# Projeções geradas pelo `sia sync` a partir de .sia-core/
+.claude/
+.codex/
+.gemini/
+.grok/
+.mcp.json
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+
+# Sandbox local de validação (gerada por `sia sync --target sandbox`)
+sandbox/
+
+# AIOX: instalação de referência usada durante a construção (não faz parte do SIA)
+.aiox-core/
+.aiox/
+.validator/
+.antigravity/
+.cursor/
+.kimi/
+.github/agents/

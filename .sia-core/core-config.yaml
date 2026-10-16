@@ -1,0 +1,129 @@
+# ─────────────────────────────────────────────────────────────
+# SIA: configuração do projeto
+# Lida por agentes, tasks e pela CLI `sia`. Ajuste por projeto.
+# Chaves em inglês; comentários em português.
+# ─────────────────────────────────────────────────────────────
+
+sia:
+  version: 1.0.0
+
+project:
+  name: ''                    # nome do produto/projeto
+  type: greenfield            # greenfield | brownfield
+  language: pt-BR             # idioma dos documentos gerados
+
+# Caminhos dos artefatos do projeto (ver guia de autoria, seção 5.2)
+paths:
+  prd: docs/prd.md
+  prdSharded: docs/prd
+  epicFilePattern: epic-{n}-{slug}.md
+  architecture: docs/architecture.md
+  architectureSharded: docs/architecture
+  adr: docs/architecture/adr
+  stories: docs/stories
+  storyFilePattern: '{epic}.{story}-{slug}.story.md'
+  backlog: docs/stories/backlog.md
+  qa: docs/qa
+  qaGates: docs/qa/gates
+  qaAssessments: docs/qa/assessments
+  inspections: docs/qa/inspections
+  gotchas: docs/gotchas.md
+  squads: squads
+  runtime: .sia               # estado local (handoffs, ciclo de story); não versionado
+
+prd:
+  sharded: true               # PRD fragmentado em paths.prdSharded via *shard-doc
+
+architecture:
+  sharded: true               # arquitetura fragmentada em paths.architectureSharded
+
+# Arquivos que o @dev sempre carrega antes de implementar
+devLoadAlwaysFiles:
+  - docs/architecture/coding-standards.md
+  - docs/architecture/tech-stack.md
+  - docs/architecture/source-tree.md
+
+# Gates de qualidade
+quality:
+  scripts:                    # comandos do projeto; ausentes são registrados e ignorados no gate
+    lint: npm run lint
+    typecheck: npm run typecheck
+    test: npm test
+    build: npm run build
+  storyValidation:
+    minScore: 7               # GO quando a nota do checklist de 10 pontos for >= minScore
+  inspection:
+    requiredBeforeGate: true  # o QA gate exige relatório do @validator
+    command: revisar-feature
+  qaLoop:
+    maxIterations: 5          # revisão → correção → nova revisão
+  yoloDecisionLog: story      # decisões do modo YOLO ficam na própria story
+
+# IDEs para as quais `sia sync` gera projeções
+ide:
+  targets:
+    - claude-code
+    - codex                   # ChatGPT / Codex (AGENTS.md + .codex/)
+    - gemini
+    - grok
+  slashPrefix: SIA
+
+# Integrações. Configuração dos MCPs: `sia mcp setup {supabase|vercel}` (@devops *setup-mcp)
+integrations:
+  supabase:
+    enabled: false
+    projectRef: ''            # referência do projeto no Supabase
+    mcp:
+      readOnly: true          # MCP em modo somente leitura por padrão
+  vercel:
+    enabled: false
+    team: ''                  # slug do time na Vercel
+    project: ''               # slug do projeto na Vercel
+    productionBranch: main
+
+github:
+  enabled: true
+  pr:
+    titleFormat: conventional
+    includeStoryId: true
+    draftByDefault: false
+  conventionalCommits:
+    enabled: true
+    branchTypeMap:
+      feature/: feat
+      feat/: feat
+      fix/: fix
+      bugfix/: fix
+      hotfix/: fix
+      docs/: docs
+      chore/: chore
+      refactor/: refactor
+      test/: test
+      perf/: perf
+      ci/: ci
+    defaultType: feat
+
+squads:
+  location: squads
+  autoLoad: false
+  registry:
+    repo: ''                  # repositório git para *publish-squad / *download-squad (vazio = desativado)
+
+# Proteção do framework: impede edição acidental de artefatos do .sia-core em projetos.
+# Quem contribui com o próprio SIA usa false.
+boundary:
+  frameworkProtection: true
+  protected:
+    - .sia-core/constitution.md
+    - .sia-core/tasks/**
+    - .sia-core/templates/**
+    - .sia-core/checklists/**
+    - .sia-core/workflows/**
+    - .sia-core/rules/**
+    - .sia-core/skills/**
+    - .sia-core/hooks/**
+    - .sia-core/cli/**
+  exceptions:
+    - .sia-core/core-config.yaml
+    - .sia-core/agents/*/MEMORY.md
+    - .sia-core/data/technical-preferences.md
