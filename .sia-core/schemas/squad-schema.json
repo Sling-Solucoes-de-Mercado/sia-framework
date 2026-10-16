@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Manifest de squad do SIA",
+  "description": "Schema do squads/{nome}/squad.yaml (arquitetura task-first). Usado por sia validate --squad {nome}. Usa só o subconjunto suportado pela CLI: type, required, properties, pattern, enum, items, minLength, maxLength, additionalProperties.",
+  "type": "object",
+  "required": ["name", "version"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 2,
+      "maxLength": 50,
+      "description": "Nome do squad em kebab-case, igual ao nome da pasta em squads/ (ex.: vendas-b2b)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Versão semântica do squad (ex.: 1.0.0)"
+    },
+    "short-title": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Título curto do squad"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Descrição breve do propósito do squad"
+    },
+    "author": {
+      "type": "string",
+      "description": "Autor ou organização"
+    },
+    "license": {
+      "type": "string",
+      "enum": ["MIT", "Apache-2.0", "ISC", "GPL-3.0", "UNLICENSED"],
+      "description": "Licença do squad (padrão sugerido: MIT)"
+    },
+    "slashPrefix": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Prefixo dos comandos do squad nas IDEs (ex.: vendas para /vendas-*)"
+    },
+    "sia": {
+      "type": "object",
+      "description": "Compatibilidade com o SIA",
+      "properties": {
+        "minVersion": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Versão mínima do SIA exigida (sia.version do core-config.yaml)"
+        }
+      }
+    },
+    "requires": {
+      "type": "object",
+      "description": "Requisitos de execução",
+      "properties": {
+        "node": {
+          "type": "string",
+          "description": "Versão do Node.js exigida pelos scripts do squad (ex.: >=18.0.0)"
+        },
+        "sia": {
+          "type": "string",
+          "description": "Faixa de versão do SIA (ex.: >=1.0.0)"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Palavras-chave para descoberta"
+    },
+    "components": {
+      "type": "object",
+      "description": "Arquivos do squad por tipo, com o nome relativo à pasta do tipo (ex.: tasks: [gerar-proposta.md]). Task-first: as tasks são a porta de entrada.",
+      "properties": {
+        "agents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arquivos em agents/ (formato de agente do guia de autoria, seção 7)"
+        },
+        "tasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arquivos em tasks/ (formato de task do guia de autoria, seção 8)"
+        },
+        "workflows": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arquivos em workflows/"
+        },
+        "checklists": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arquivos em checklists/"
+        },
+        "templates": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arquivos em templates/"
+        },
+        "data": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arquivos em data/ (bases de conhecimento do squad)"
+        },
+        "scripts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Arquivos em scripts/ (automação; implementação pelo @dev)"
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "Herança da configuração do projeto",
+      "properties": {
+        "extends": {
+          "type": "string",
+          "enum": ["extend", "override", "none"],
+          "description": "extend soma regras às do projeto, override substitui, none não herda"
+        },
+        "coding-standards": {
+          "type": "string",
+          "description": "Caminho relativo à raiz do squad (local em config/ ou do projeto em ../../docs/architecture/)"
+        },
+        "tech-stack": {
+          "type": "string",
+          "description": "Caminho do documento de tech stack do squad"
+        },
+        "source-tree": {
+          "type": "string",
+          "description": "Caminho do documento de estrutura de pastas do squad"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Dependências externas do squad",
+      "properties": {
+        "node": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Pacotes Node.js"
+        },
+        "python": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Pacotes Python"
+        },
+        "squads": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Outros squads dos quais este depende"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

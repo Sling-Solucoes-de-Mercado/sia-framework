@@ -1,0 +1,75 @@
+# Template de workflow do SIA (guia de autoria, seção 11). Usado por @squad-creator em *create-workflow
+# e *extend-squad --add workflow.
+# Destino: .sia-core/workflows/{{WORKFLOW_ID}}.yaml (framework) ou squads/{nome}/workflows/{{WORKFLOW_ID}}.yaml (squad).
+# Substitua os placeholders {{...}}, repita o bloco de passo quantas vezes precisar e remova este cabeçalho.
+#
+# Regras:
+# - todo task: existe em .sia-core/tasks/ (em workflow de squad, primeiro em squads/{nome}/tasks/)
+# - todo agent: é um dos 5 agentes do SIA (pm, dev, devops, validator, squad-creator) ou, em workflow de squad,
+#   um agente do squad (resolução: squad primeiro, depois o SIA)
+# - hat: obrigatório quando o agente é pm ou dev; remova nos demais
+# - requires: lista de ids de passos anteriores, sem ciclos
+# - condition (opcional): identificador descritivo de quando o passo roda (ex.: has_ui_changes)
+# - push, PR, release e deploy de produção só com agent: devops (Constitution, Artigo II)
+# - transições de status de story seguem o guia de autoria, seção 6
+# - handoff_prompts cobre toda troca de agente entre passos consecutivos
+# - flow_diagram: Mermaid com declaração flowchart e colchetes balanceados
+#
+# Placeholders: {{WORKFLOW_ID}} (kebab-case, igual ao nome do arquivo), {{WORKFLOW_NAME}}, {{WORKFLOW_DESCRIPTION}},
+# {{STEP_n_SLUG}}, {{STEP_n_ID}}, {{STEP_n_NAME}}, {{STEP_n_AGENT}}, {{STEP_n_HAT}}, {{STEP_n_TASK}}, {{STEP_n_COMMAND}},
+# {{STEP_n_ARTIFACT}}, {{STEP_n_NOTES}}, {{STEP_n_CRITERION}}, {{FAILURE_REASON}}, {{WHEN_TO_USE}}, {{WHEN_NOT_TO_USE}},
+# {{HANDOFF_MESSAGE}}.
+
+workflow:
+  id: '{{WORKFLOW_ID}}'
+  name: '{{WORKFLOW_NAME}}'
+  version: '1.0'
+  description: >-
+    {{WORKFLOW_DESCRIPTION}}
+  type: generic                        # generic | greenfield | brownfield
+  project_types: [greenfield, brownfield]
+  execution_modes: [yolo, interactive, preflight]
+
+  sequence:
+    - step: '{{STEP_1_SLUG}}'          # nome do passo em snake_case
+      id: '{{STEP_1_ID}}'              # id curto, usado em requires, on_failure e handoff_prompts
+      phase: 1
+      agent: '{{STEP_1_AGENT}}'
+      hat: '{{STEP_1_HAT}}'
+      task: '{{STEP_1_TASK}}.md'
+      creates: '{{STEP_1_ARTIFACT}}'   # artefato produzido, nos caminhos do guia (seção 5.2)
+      requires: []
+      notes: |
+        {{STEP_1_NOTES}}
+      success_criteria:
+        - '{{STEP_1_CRITERION}}'
+
+    - step: '{{STEP_2_SLUG}}'
+      id: '{{STEP_2_ID}}'
+      phase: 2
+      agent: '{{STEP_2_AGENT}}'
+      task: '{{STEP_2_TASK}}.md'
+      requires: ['{{STEP_1_ID}}']
+      # condition: '{{CONDITION_ID}}'
+      on_failure: { goto: '{{STEP_1_ID}}', reason: '{{FAILURE_REASON}}' }
+      notes: |
+        {{STEP_2_NOTES}}
+      success_criteria:
+        - '{{STEP_2_CRITERION}}'
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A[{{STEP_1_NAME}}] --> B[{{STEP_2_NAME}}]
+      B -->|{{FAILURE_REASON}}| A
+      B --> C[Concluído]
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - '{{WHEN_TO_USE}}'
+    when_not_to_use:
+      - '{{WHEN_NOT_TO_USE}}'
+
+  handoff_prompts:
+    '{{STEP_1_ID}}_to_{{STEP_2_ID}}': '{{HANDOFF_MESSAGE}}. Próximo: @{{STEP_2_AGENT}} *{{STEP_2_COMMAND}}'

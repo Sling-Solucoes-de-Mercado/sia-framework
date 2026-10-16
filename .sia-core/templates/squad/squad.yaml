@@ -1,0 +1,42 @@
+# Manifest do squad (squads/{{SQUAD_NAME}}/squad.yaml), gerado por @squad-creator *create-squad.
+# Os placeholders {{...}} são substituídos na criação; a lista completa está no comentário do README.md.
+# Depois de substituído, este arquivo precisa passar em .sia-core/schemas/squad-schema.json
+# (sia validate --squad {{SQUAD_NAME}}). Obrigatórios: name e version.
+
+name: '{{SQUAD_NAME}}'
+version: '{{SQUAD_VERSION}}'
+short-title: '{{SQUAD_TITLE}}'
+description: '{{SQUAD_DESCRIPTION}}'
+author: '{{SQUAD_AUTHOR}}'
+license: '{{SQUAD_LICENSE}}'
+slashPrefix: '{{SQUAD_SLASH_PREFIX}}'
+
+sia:
+  minVersion: '{{SIA_MIN_VERSION}}'
+
+# Nomes relativos à pasta de cada tipo (agents/, tasks/...). Task-first: toda capacidade nasce numa task.
+components:
+  agents:
+    - example-agent.md
+  tasks:
+    - example-task.md
+  workflows: []
+  checklists: []
+  templates: []
+  data: []
+  scripts: []
+
+# Remova o bloco inteiro quando CONFIG_MODE for none.
+config:
+  extends: '{{CONFIG_MODE}}'
+  coding-standards: config/coding-standards.md
+  tech-stack: config/tech-stack.md
+  source-tree: config/source-tree.md
+
+dependencies:
+  node: []
+  python: []
+  squads: []
+
+tags:
+  - '{{SQUAD_NAME}}'

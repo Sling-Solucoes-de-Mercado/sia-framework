@@ -165,7 +165,8 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | RUN-LOG de pipelines longos | `docs/prd/epic-{n}-run-log.md` ou `docs/runlogs/{pipeline}-run-log.md` |
 | Gotchas | `docs/gotchas.md` |
 | Squads | `squads/{nome}/` |
-| Runtime (não versionado) | `.sia/` (handoffs, `sdc/`, `qa-loop/`, `workflows/`, agente ativo) |
+| Blueprints de squad (`*design-squad`) | `squads/.designs/` |
+| Runtime (não versionado) | `.sia/` (handoffs, `sdc/`, `qa-loop/`, `workflows/`, `backups/`, `publish/`, agente ativo) |
 
 `{epic}.{story}` é o **storyId** (ex.: `1.3`). `{slug}` é o título curto em kebab-case, sem acentos.
 
@@ -413,6 +414,14 @@ Regras do bloco YAML:
 - `visibility`: `key` aparece na saudação, `quick` no `*help` curto, `full` no `*help` completo.
 - A saudação não usa adjetivo com gênero ("pronto/pronta"). Use construções neutras: "em ação", "na área", "por aqui".
 
+### 7.1 Agentes e tasks de squad
+
+- Seguem os mesmos formatos (seções 7 e 8) e ficam em `squads/{nome}/agents/` e `squads/{nome}/tasks/`.
+- Dependências resolvem primeiro em `squads/{nome}/{type}/` e depois em `.sia-core/{type}/`.
+- Em tasks de squad, `agent:` aceita o id de um agente do próprio squad.
+- O tier do agente (posição no fluxo do squad) fica em `## Colaboração`. Agentes de especialista podem ter uma seção opcional `## Voz`.
+- Memória opcional em `squads/{nome}/agents/{id}/MEMORY.md`.
+
 ---
 
 ## 8. Formato de task
@@ -561,6 +570,8 @@ Markdown, SQL, YAML de CI etc. Comece com um comentário curto no formato do arq
 ```
 
 Blocos `[[LLM: ...]]` são instruções para o agente e não aparecem no relatório final.
+
+Itens podem ser marcados como `(B)` bloqueante ou `(R)` recomendado. Um item `(B)` reprovado reprova o checklist; itens `(R)` só reduzem a nota.
 
 ---
 
@@ -719,7 +730,7 @@ Tasks podem citar estes comandos. Todos rodam a partir da raiz do projeto.
 | `sia doctor [--json]` | Diagnóstico do ambiente: estrutura, config, Node ≥ 22, git, gh, projeções, hooks, MCPs |
 | `sia validate` | Valida agentes, tasks, templates, checklists, workflows, skills e referências cruzadas |
 | `sia validate --squad {nome}` | Valida um squad contra o schema |
-| `sia sync [--ide claude,codex,gemini,grok] [--check]` | Gera ou confere as projeções das IDEs |
+| `sia sync [--ide claude-code,codex,gemini,grok] [--check]` | Gera ou confere as projeções das IDEs |
 | `sia story status {storyId}` | Mostra status, checkboxes e próximo passo da story |
 | `sia sdc plan {storyId} [--mode yolo\|interactive]` | Cria ou retoma o estado do ciclo da story |
 | `sia sdc next {storyId}` | Diz a próxima fase e o comando a executar |

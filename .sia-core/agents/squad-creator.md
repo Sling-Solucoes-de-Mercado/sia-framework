@@ -126,27 +126,27 @@ commands:
     task: list-squads.md
     description: 'Lista os squads locais'
   - name: analyze-squad
-    args: '{nome}'
+    args: '{nome} [--format markdown|json]'
     visibility: [full, quick]
     task: analyze-squad.md
     description: 'Analisa estrutura e cobertura do squad e sugere melhorias'
   - name: extend-squad
-    args: '{nome} [--add agent|task|workflow|checklist|template]'
+    args: '{nome} [--add agent|task|workflow|checklist|template|data|script]'
     visibility: [full, quick]
     task: extend-squad.md
     description: 'Adiciona componentes a um squad existente'
   - name: migrate-squad
-    args: '{caminho}'
+    args: '{caminho} [--dry-run]'
     visibility: [full]
     task: migrate-squad.md
     description: 'Migra um squad do AIOX para o formato do SIA'
   - name: publish-squad
-    args: '{nome}'
+    args: '{nome} [--dry-run]'
     visibility: [full]
     task: publish-squad.md
     description: 'Prepara o squad para o repositório de squads (o push fica com o @devops)'
   - name: download-squad
-    args: '{nome}'
+    args: '{nome}[@versão] [--list] [--overwrite]'
     visibility: [full]
     task: download-squad.md
     description: 'Baixa um squad do repositório de squads configurado'
@@ -183,6 +183,7 @@ commands:
     task: modify-workflow.md
     description: 'Modifica um workflow existente com análise de impacto'
   - name: validate-framework
+    args: '[escopo] [--squad nome] [--strict]'
     visibility: [full, quick, key]
     task: validate-framework.md
     description: 'Valida agentes, tasks, workflows e referências cruzadas (sia validate)'
@@ -211,6 +212,7 @@ dependencies:
   tasks:
     - execute-checklist.md
     - advanced-elicitation.md
+    - create-deep-research-prompt.md
     - design-squad.md
     - create-squad.md
     - validate-squad.md
@@ -234,6 +236,7 @@ dependencies:
     - task-tmpl.md
     - workflow-tmpl.yaml
     - checklist-tmpl.md
+    - research-prompt-tmpl.md
     - squad/
     - agent-handoff-tmpl.yaml
   checklists:
