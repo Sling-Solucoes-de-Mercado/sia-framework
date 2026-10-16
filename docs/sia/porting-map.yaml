@@ -191,6 +191,7 @@ templates:
   github-actions-ci.yml:        { batch: B6, source: [product/templates/github-actions-ci.yml] }
   github-actions-cd.yml:        { batch: B6, source: [product/templates/github-actions-cd.yml] }
   changelog-tmpl.md:            { batch: B6, source: [product/templates/changelog-template.md] }
+  env.example:                  { batch: B6, source: ["../.env.example"] }
   # B3: @dev
   service/:                     { batch: B3, source: [development/templates/service-template/] }
   # B7: @squad-creator

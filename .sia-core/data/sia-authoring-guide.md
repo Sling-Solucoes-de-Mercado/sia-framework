@@ -149,11 +149,22 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | QA gates | `docs/qa/gates/{epic}.{story}-{slug}.yml` |
 | Avaliações de QA (NFR, risco, test design, trace) | `docs/qa/assessments/{epic}.{story}-{tipo}-{AAAAMMDD}.md` |
 | Relatórios de inspeção | `docs/qa/inspections/AAAA-MM-DD-HHmm-{comando}-{escopo}.md` |
+| Plano de execução de epic | `docs/prd/epic-{n}-execution.yaml` |
+| Índice de stories | `docs/stories/index.md` |
+| Artefatos de UX (pesquisa, wireframes, auditorias) | `docs/ux/` |
+| Especificação de front-end | `docs/front-end-spec.md` |
 | Gotchas | `docs/gotchas.md` |
 | Squads | `squads/{nome}/` |
-| Runtime (não versionado) | `.sia/` (handoffs, estado do ciclo, sessão) |
+| Runtime (não versionado) | `.sia/` (handoffs, estado do ciclo, sessão, agente ativo) |
 
-`{epic}.{story}` é o **storyId** (ex.: `1.3`). `{slug}` é o título curto em kebab-case.
+`{epic}.{story}` é o **storyId** (ex.: `1.3`). `{slug}` é o título curto em kebab-case, sem acentos.
+
+### 5.3 Fragmentação de documentos (`shard-doc`)
+
+- Cada seção de nível 2 (`##`) vira um arquivo: o nome é o título em kebab-case, sem acentos (`## Requisitos Não Funcionais` → `requisitos-nao-funcionais.md`).
+- Seções de epic no PRD usam o título `## Epic {n}: {título}` e viram `epic-{n}-{slug}.md`.
+- Na arquitetura, três seções têm título fixo em inglês, porque o `@dev` sempre as carrega (`devLoadAlwaysFiles`): `## Tech Stack` → `tech-stack.md`, `## Source Tree` → `source-tree.md`, `## Coding Standards` → `coding-standards.md`.
+- O fragmentador gera um `index.md` com links para os fragmentos.
 
 ---
 
@@ -239,6 +250,69 @@ Quem edita cada seção:
 | Tasks / Subtasks (checkboxes), Dev Notes, Testes, Registro do Dev | `@dev` |
 | Resultado do QA | `@pm` [Qualidade] |
 | Change Log | qualquer agente, só acrescentando linhas |
+
+### 6.2 Formatos verificados pela CLI
+
+A CLI (`sia story status`, `sia sdc verify`) lê estes formatos. Tasks e templates devem produzi-los exatamente assim.
+
+**Status da story:** a primeira linha não vazia depois de `## Status` contém só o valor (`Draft`, `Ready`, `InProgress`, `InReview` ou `Done`).
+
+**Bloco `## Resultado do QA`** (escrito pelo `*qa-gate`; a última ocorrência de cada campo vale):
+
+```markdown
+## Resultado do QA
+
+- **Gate:** PASS
+- **Revisor:** @pm (Mira) [Qualidade]
+- **Revisão:** 3f2a9c1
+- **Data:** 2026-10-16
+- **Arquivo do gate:** docs/qa/gates/2.1-login-social.yml
+- **Inspeção:** docs/qa/inspections/2026-10-16-1430-revisar-feature-2.1.md (aprovado com ressalvas)
+- **Resumo:** uma ou duas frases
+
+### Pedido de correção (iteração 1)
+Só quando o gate é FAIL. Lista numerada de correções com severidade, arquivo e critério de aceite afetado.
+```
+
+`Revisão` é o hash curto do commit avaliado (`git rev-parse --short HEAD`).
+
+**Arquivo do gate** (`docs/qa/gates/{storyId}-{slug}.yml`):
+
+```yaml
+schema: 1
+story: '2.1'
+story_title: Login social
+gate: PASS                      # PASS | CONCERNS | FAIL | WAIVED
+status_reason: Uma frase com o motivo
+reviewer: '@pm (Mira) [Qualidade]'
+reviewed_revision: 3f2a9c1
+updated: '2026-10-16T14:45:00-03:00'
+inspection_report: docs/qa/inspections/2026-10-16-1430-revisar-feature-2.1.md
+iteration: 1                    # iteração do QA Loop
+top_issues: []                  # [{id, severity: low|medium|high, category, finding, suggested_action}]
+waiver: { active: false, reason: '', approved_by: '' }
+nfr_validation: {}              # {security|performance|reliability|maintainability: {status: PASS|CONCERNS|FAIL, notes}}
+risk_summary: {}
+recommendations: { immediate: [], future: [] }
+```
+
+**Relatório de inspeção** (`docs/qa/inspections/AAAA-MM-DD-HHmm-{comando}-{escopo}.md`) começa com frontmatter:
+
+```yaml
+---
+command: revisar-feature
+scope: '2.1'
+story: '2.1'                    # vazio quando o escopo não é uma story
+verdict: aprovado com ressalvas # aprovado | aprovado com ressalvas | reprovado
+date: '2026-10-16T14:30:00-03:00'
+revision: 3f2a9c1
+findings: { bloqueante: 0, alto: 0, medio: 1, baixo: 2, nota: 0 }
+---
+```
+
+**Handoff** (`.sia/handoffs/handoff-{de}-para-{para}-{AAAAMMDD-HHmmss}.yaml`): campos do template `agent-handoff-tmpl.yaml`, incluindo `last_command` e `consumed` (false ao gravar; true quando o agente seguinte exibe a sugestão).
+
+**Agente ativo** (`.sia/active-agent.json`): `{"id": "devops", "source": "hook|cli", "at": "ISO-8601"}`. Escrito pelo hook de prompt ou por `sia agent use {id}`; lido pelo hook de autoridade.
 
 ---
 
@@ -628,7 +702,9 @@ Tasks podem citar estes comandos. Todos rodam a partir da raiz do projeto.
 | `sia mcp status` | Mostra quais MCPs estão configurados em cada IDE |
 | `sia squad list` | Lista squads locais |
 
-Se a CLI não estiver disponível, a task descreve a verificação manual equivalente.
+| `sia agent use {id}` / `sia agent current` / `sia agent clear` | Registra, mostra ou limpa o agente ativo (`.sia/active-agent.json`) |
+
+Se `sia` não estiver no PATH, use `node .sia-core/cli/sia.js {comando}`. Se a CLI não estiver disponível, a task descreve a verificação manual equivalente.
 
 ---
 
