@@ -1,0 +1,3 @@
+# Mantém LF em todos os sistemas (o instalador e o bundle do executável dependem disso)
+* text=auto eol=lf
+*.ps1 text eol=crlf

@@ -189,11 +189,12 @@ function yamlString(value) {
 
 /** Ajusta o core-config por texto, preservando os comentários do arquivo. */
 function patchConfig(text, { name, type, ides }) {
-  let out = text;
+  const crlf = text.includes('\r\n');
+  let out = crlf ? text.replace(/\r\n/g, '\n') : text;
   out = out.replace(/^( {2}name: ).*?(\s+#.*)?$/m, (_, key, comment) => `${key}${yamlString(name)}${comment || ''}`);
   out = out.replace(/^( {2}type: )\S+(\s+#.*)?$/m, (_, key, comment) => `${key}${type}${comment || ''}`);
   out = out.replace(/^( {2}targets:\n)((?: {4}- .*\n)+)/m, (_, head) => `${head}${ides.map((id) => `    - ${id}\n`).join('')}`);
-  return out;
+  return crlf ? out.replace(/\n/g, '\r\n') : out;
 }
 
 // ─── Perguntas ──────────────────────────────────────────────────────────

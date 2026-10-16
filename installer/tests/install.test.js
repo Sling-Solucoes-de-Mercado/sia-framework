@@ -68,6 +68,8 @@ test('patchConfig, parseIdes e bundle', () => {
   assert.match(out, /name: 'O''Brien' {20}# nome/);
   assert.match(out, /type: brownfield {12}# tipo/);
   assert.match(out, /targets:\n {4}- gemini\n {2}slashPrefix/);
+  const crlf = patchConfig(text.replace(/\n/g, '\r\n'), { name: 'x', type: 'greenfield', ides: ['grok'] });
+  assert.match(crlf, /targets:\r\n {4}- grok\r\n {2}slashPrefix/, 'config com CRLF (checkout no Windows)');
   assert.deepEqual(parseIdes('claude,codex'), ['claude-code', 'codex']);
   assert.throws(() => parseIdes('cursor'), /IDE desconhecida/);
   const bundle = buildBundle();
