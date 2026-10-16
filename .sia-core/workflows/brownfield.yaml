@@ -1,0 +1,306 @@
+workflow:
+  id: brownfield
+  name: Evolução de Sistema Existente (Brownfield)
+  version: "1.0"
+  description: >-
+    Evolui um sistema existente (funcionalidade nova, modernização, refatoração ou integração)
+    com análise do estado atual e integração segura. A variável project_type define o foco:
+    fullstack, service (API ou backend) ou ui (frontend). Evoluções pequenas saem cedo do
+    workflow, como story única ou epic curto.
+  type: brownfield
+  project_types: [brownfield]
+  execution_modes: [interactive]
+  source:
+    - development/workflows/brownfield-fullstack.yaml
+    - development/workflows/brownfield-service.yaml
+    - development/workflows/brownfield-ui.yaml
+
+  variables:
+    project_type:
+      values: [fullstack, service, ui]
+      default: fullstack
+      elicit: true
+      prompt: |
+        Qual parte do sistema a evolução atinge?
+        1. fullstack: frontend e backend
+        2. service: API ou serviço de backend
+        3. ui: frontend
+
+  phases:
+    - phase_1: Compatibilidade, classificação e roteamento
+    - phase_2: Planejamento e documentação
+    - phase_3: Fragmentação dos documentos
+    - phase_4: Ciclo de desenvolvimento
+
+  sequence:
+    # ── Fase 1: compatibilidade, classificação e roteamento ────
+    - step: sia_compatibility_check
+      id: compatibility
+      phase: 1
+      agent: dev
+      hat: architect
+      command: '*brownfield-checklist'
+      task: execute-checklist.md
+      requires: []
+      optional: true
+      condition: o SIA está sendo adotado agora neste projeto existente
+      notes: |
+        Checklist de compatibilidade brownfield (brownfield-compatibility-checklist.md): seções 1 a 4
+        antes da instalação do SIA, 5 a 7 durante e 8 a 10 depois. Garante que a adoção só acrescenta
+        arquivos, preserva configurações (.env, scripts, lint, CI) e pode ser desfeita. Nada
+        destrutivo; backup remoto pelo @devops (*push).
+      success_criteria:
+        - Checklist sem pendências bloqueantes e procedimento de rollback conhecido
+
+    - step: classify_enhancement
+      id: classify
+      phase: 1
+      agent: pm
+      hat: analyst
+      action: Classificar o tamanho da evolução
+      requires: []
+      elicit: true
+      notes: |
+        Pergunte: "Descreva a evolução. É uma correção pequena, uma funcionalidade nova ou uma
+        evolução grande, com mudança de arquitetura?" Opções:
+        1. Story única (menos de 4 horas)
+        2. Funcionalidade pequena (1 a 3 stories)
+        3. Evolução grande (vários epics)
+
+    - step: routing_decision
+      id: route
+      phase: 1
+      agent: pm
+      requires: [classify]
+      action: Seguir a rota da classificação (story única e funcionalidade pequena saem do workflow)
+      routes:
+        single_story:
+          hat: scrum
+          command: '*create-brownfield-story'
+          task: create-brownfield-story.md
+          then: story-development-cycle.yaml
+          notes: Story única para implementação imediata. Sai deste workflow e segue no SDC a partir de @pm *validate-story {storyId}.
+        small_feature:
+          hat: product
+          command: '*create-epic'
+          task: create-epic.md
+          then: story-development-cycle.yaml
+          notes: Epic focado com 1 a 3 stories. Sai deste workflow e cada story segue no SDC.
+        major_enhancement:
+          continue: doc_check
+          notes: Segue no planejamento completo abaixo.
+
+    # ── Fase 2: planejamento e documentação ────────────────────
+    - step: documentation_check
+      id: doc_check
+      phase: 2
+      agent: pm
+      hat: analyst
+      action: Verificar a documentação existente
+      requires: [route]
+      condition: evolução grande
+      notes: |
+        Procure documentação de arquitetura, especificação de API e padrões de código, e veja se está
+        atual e completa. Adequada: pule a análise e vá para o PRD. Insuficiente: rode a análise.
+
+    - step: analyze_project
+      id: analysis
+      phase: 2
+      agent: dev
+      hat: architect
+      command: '*document-project'
+      task: document-project.md
+      creates: docs/brownfield-architecture.md
+      requires: [doc_check]
+      condition: project_type in [service, ui] ou documentação insuficiente
+      notes: |
+        Registra o estado atual, o débito técnico e as restrições, para o PRD não repetir a análise.
+        service: inclui métricas de desempenho e dependências de integração.
+        ui: inclui feedback de usuários, dados de analytics e áreas de melhoria.
+
+    - step: create_prd
+      id: prd
+      phase: 2
+      agent: pm
+      hat: product
+      command: '*create-brownfield-prd'
+      task: create-doc.md
+      creates: docs/prd.md
+      requires: [doc_check]
+      elicit: true
+      notes: |
+        PRD da evolução. Use a análise (docs/brownfield-architecture.md), quando houver, ou a
+        documentação existente.
+
+    - step: front_end_spec
+      id: frontend_spec
+      phase: 2
+      agent: dev
+      hat: ux
+      command: '*create-front-end-spec'
+      task: create-doc.md
+      creates: docs/front-end-spec.md
+      requires: [prd]
+      condition: project_type == ui
+      elicit: true
+      notes: |
+        Especificação de UI integrada aos padrões de design existentes.
+
+    - step: architecture_decision
+      id: arch_decision
+      phase: 2
+      agent: pm
+      hat: product
+      alternative_agent: dev
+      action: Decidir se a evolução precisa de documento de arquitetura
+      requires: [prd]
+      condition: project_type == fullstack
+      notes: |
+        Precisa de arquitetura: padrões novos, bibliotecas ou frameworks novos, mudança de plataforma
+        ou de infraestrutura. Segue os padrões existentes: pule para a validação.
+
+    - step: create_architecture
+      id: architecture
+      phase: 2
+      agent: dev
+      hat: architect
+      command: '*create-brownfield-architecture'
+      task: create-doc.md
+      creates: docs/architecture.md
+      requires: [prd]
+      condition: project_type in [service, ui] ou arch_decision = sim
+      elicit: true
+      notes: |
+        service: estratégia de integração do serviço e evolução da API.
+        ui: estratégia de integração de componentes e plano de migração (usa docs/front-end-spec.md).
+        fullstack: só para mudanças de arquitetura significativas.
+
+    - step: fix_artifacts
+      id: fix_artifacts
+      phase: 2
+      agent: pm
+      hat: owner
+      action: Delegar cada pendência do checklist ao dono do documento
+      requires: [prd]
+      condition: o *po-checklist apontou pendências
+      notes: |
+        Pulado no primeiro passe; roda quando po_validate falha (on_failure). PRD: @pm (chapéu
+        Produto). Análise, arquitetura e especificação de UI: @dev (chapéus Arquitetura e UX/UI).
+        Depois das correções, po_validate roda de novo.
+
+    - step: validate_artifacts
+      id: po_validate
+      phase: 2
+      agent: pm
+      hat: owner
+      command: '*po-checklist'
+      task: execute-checklist.md
+      requires: [prd]
+      notes: |
+        Valida os documentos quanto à segurança da integração e à completude (service:
+        compatibilidade da API; ui: consistência do design). Pode exigir ajuste em qualquer documento.
+      success_criteria:
+        - Checklist sem pendências
+      on_failure: { goto: fix_artifacts, reason: pendências no checklist }
+
+    # ── Fase 3: fragmentação dos documentos ────────────────────
+    - step: shard_prd
+      id: shard_prd
+      phase: 3
+      agent: pm
+      hat: product
+      command: '*shard-prd'
+      task: shard-doc.md
+      creates: docs/prd/
+      requires: [po_validate]
+
+    - step: shard_architecture
+      id: shard_architecture
+      phase: 3
+      agent: pm
+      hat: owner
+      command: '*shard-doc docs/architecture.md docs/architecture'
+      task: shard-doc.md
+      creates: docs/architecture/
+      requires: [po_validate]
+      condition: docs/architecture.md existe
+
+    # ── Fase 4: ciclo de desenvolvimento ───────────────────────
+    - step: development_cycle
+      id: develop
+      phase: 4
+      agent: pm
+      hat: product
+      workflow: story-development-cycle.yaml
+      requires: [shard_prd]
+      repeats: para cada story de cada epic ou evolução
+      notes: |
+        Criação da story: PRD fragmentado → @pm *create-story {epic}; documentação brownfield
+        → @pm *create-brownfield-story (pode pedir contexto extra ao usuário).
+        Cada story segue no SDC completo: @pm *validate-story {storyId}, execução pelo executor
+        declarado (@dev *develop {storyId} por padrão), @validator *revisar-feature {storyId},
+        @pm *qa-gate {storyId}, @devops *push e @devops *create-pr {storyId}, @pm *close-story {storyId}.
+
+  completion:
+    notes: |
+      Todas as stories implementadas, inspecionadas e aprovadas no gate. Evolução concluída.
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A([Início: escolha do project_type]) --> B["@pm Análise: classifica a evolução"]
+      A -.->|SIA adotado agora| CK["@dev Arquitetura: *brownfield-checklist"]
+      CK -.-> B
+      B --> C{Tamanho}
+      C -->|story única| D["@pm Scrum: *create-brownfield-story"]
+      C -->|1 a 3 stories| E["@pm Produto: *create-epic"]
+      C -->|evolução grande| F["@pm Análise: verifica a documentação"]
+      D --> S1([SDC da story])
+      E --> S2([SDC de cada story do epic])
+      F --> G{"Análise necessária? (service, ui ou documentação insuficiente)"}
+      G -->|sim| H["@dev Arquitetura: *document-project"]
+      G -->|não| I["@pm Produto: *create-brownfield-prd"]
+      H --> I
+      I --> U{project_type ui?}
+      U -->|sim| U1["@dev UX/UI: *create-front-end-spec"]
+      U -->|não| J
+      U1 --> J{"Precisa de arquitetura? (service, ui ou decisão no fullstack)"}
+      J -->|sim| K["@dev Arquitetura: *create-brownfield-architecture"]
+      J -->|não| L["@pm Product Owner: *po-checklist"]
+      K --> L
+      L --> M{Pendências?}
+      M -->|sim| N[Correção pelo dono do documento]
+      N --> L
+      M -->|não| O["@pm: *shard-prd e *shard-doc"]
+      O --> P[SDC de cada story]
+      P --> Q{Mais stories?}
+      Q -->|sim| P
+      Q -->|não| R([Evolução concluída])
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - Adoção do SIA num projeto existente, começando pelo *brownfield-checklist
+      - Evolução que pede stories coordenadas
+      - Mudança de arquitetura, nova versão de API ou mudança incompatível
+      - Mudança de schema de banco
+      - Melhoria de desempenho ou de escala com vários pontos de integração
+      - Mudança de design system ou padrões novos de componentes
+      - Várias pessoas trabalhando em mudanças relacionadas
+    when_not_to_use:
+      - Projeto novo do zero (greenfield)
+      - Avaliação de débito técnico sem evolução definida (brownfield-discovery)
+      - Correção pontual com causa conhecida (story direta com @pm *create-brownfield-story)
+
+  handoff_prompts:
+    compatibility_to_classify: "Compatibilidade conferida: a adoção do SIA preserva o projeto e tem rollback. Próximo: @pm classifica a evolução."
+    classify_to_route: "Evolução classificada como {tipo}. Story única: @pm *create-brownfield-story. Funcionalidade pequena: @pm *create-epic. Evolução grande: segue no planejamento."
+    doc_check_to_analysis: "Documentação insuficiente (ou project_type service ou ui). Próximo: @dev *document-project"
+    doc_check_to_prd: "Documentação adequada. Próximo: @pm *create-brownfield-prd"
+    analysis_to_prd: "Análise do sistema pronta em docs/brownfield-architecture.md. Use-a no PRD para não repetir a análise. Próximo: @pm *create-brownfield-prd"
+    prd_to_architecture: "PRD pronto em docs/prd.md. Próximo: @dev *create-brownfield-architecture (service, ui ou mudança estrutural) ou @pm *po-checklist"
+    architecture_to_po_validate: "Arquitetura pronta em docs/architecture.md. Próximo: @pm *po-checklist (segurança da integração)"
+    po_validate_to_fix_artifacts: "O checklist apontou pendências em {documento}. Corrija com {agente} e rode de novo @pm *po-checklist"
+    po_validate_to_shard_prd: "Artefatos validados. Próximo: @pm *shard-prd e @pm *shard-doc docs/architecture.md docs/architecture"
+    shard_prd_to_develop: "Documentos fragmentados. PRD fragmentado: @pm *create-story {epic}. Documentação brownfield: @pm *create-brownfield-story"
+    complete: "Planejamento validado; cada story segue no SDC conforme a documentação disponível."

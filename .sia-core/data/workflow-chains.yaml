@@ -1,0 +1,439 @@
+# ─────────────────────────────────────────────────────────────
+# SIA: cadeias de próximo passo
+#
+# Lido na saudação dos agentes (PASSO 4, item 5.5) e pelo *next para sugerir
+# o próximo comando a partir do handoff mais recente em .sia/handoffs/.
+# Regras dos workflows: rules/workflow-execution.md e workflows/*.yaml.
+# Origem: data/workflow-chains.yaml
+#
+# Como consultar:
+#   1. No handoff, leia from_agent e last_command (nome do comando, sem * e
+#      sem argumentos, ex.: qa-gate). Se vier com * ou argumentos, use só o
+#      nome ("*revisar-feature 2.1" → revisar-feature).
+#   2. Em todas as cadeias, localize os passos com agent "@{from_agent}" e esse
+#      comando, nos passos e nas alternativas (casar com uma alternativa vale
+#      como casar com o passo dela). Ciclos de correção repetem passos:
+#      considere todas as ocorrências.
+#   3. Candidatos: o passo seguinte de cada ocorrência e as alternativas dele.
+#   4. Sugira o candidato cujo agent é o agente ativo e cuja condition vale
+#      para o estado atual (status da story, veredito da inspeção ou do gate,
+#      estado do QA Loop ou do epic). Os demais candidatos do mesmo agente vão
+#      em "Também".
+#   5. Sem candidato válido, não sugira nada.
+#
+# Placeholders: {storyId} = {epic}.{story} (ex.: 2.1); {epic} = número do
+# epic, o mesmo {n} de docs/prd/epic-{n}-{slug}.md.
+# Status: Draft, Ready, InProgress, InReview, Done.
+# ─────────────────────────────────────────────────────────────
+
+workflows:
+  # 1. Ciclo de Desenvolvimento de Story (SDC): principal
+  - id: sdc
+    name: Ciclo de Desenvolvimento de Story
+    workflow: story-development-cycle.yaml
+    description: Toda story, da criação ao fechamento, com inspeção do @validator e QA gate do @pm
+    max_iterations: 5                 # voltas de correção (quality.qaLoop.maxIterations)
+    chain:
+      - step: 1
+        agent: "@pm"
+        command: "*create-story {epic}"
+        task: create-story.md
+        output: Story em docs/stories/{storyId}-{slug}.story.md com status Draft
+        condition: Epic com stories previstas e PRD fragmentado
+        alternatives:
+          - agent: "@pm"
+            command: "*create-brownfield-story"
+            condition: Projeto existente sem PRD fragmentado
+      - step: 2
+        agent: "@pm"
+        command: "*validate-story {storyId}"
+        task: validate-story.md
+        output: GO (Draft → Ready) ou NO-GO com correções obrigatórias
+        condition: Story em Draft
+        alternatives: []
+      - step: 3
+        agent: "@dev"
+        command: "*develop {storyId}"
+        task: develop-story.md
+        output: Execução concluída (Ready → InProgress → InReview)
+        condition: Story em Ready com o @dev como executor declarado
+        alternatives:
+          - agent: "@dev"
+            command: "*develop {storyId} yolo"
+            condition: Story simples e determinística; decisões registradas na própria story
+          - agent: "@dev"
+            command: "*develop {storyId} preflight"
+            condition: Requisitos ambíguos ou trabalho crítico
+          - agent: "@devops"
+            command: "*develop {storyId}"
+            condition: Story de infraestrutura (CI/CD, deploy) com o @devops como executor declarado
+          - agent: "@pm"
+            command: "*execute-research-story {storyId}"
+            condition: Story de pesquisa com o @pm [Análise] como executor declarado
+      - step: 4
+        agent: "@validator"
+        command: "*revisar-feature {storyId}"
+        task: inspect.md
+        output: Relatório em docs/qa/inspections/ (aprovado, aprovado com ressalvas ou reprovado)
+        condition: Story em InReview que altera código ou configuração
+        alternatives:
+          - agent: "@pm"
+            command: "*qa-gate {storyId}"
+            condition: Story de pesquisa em InReview (sem inspeção)
+      - step: 5
+        agent: "@pm"
+        command: "*qa-gate {storyId}"
+        task: qa-gate.md
+        output: PASS, CONCERNS ou WAIVED (InReview → Done) ou FAIL (InReview → InProgress)
+        condition: Inspeção aprovado ou aprovado com ressalvas
+        alternatives:
+          - agent: "@dev"
+            command: "*apply-qa-fixes {storyId}"
+            condition: Inspeção reprovado (story continua em InReview)
+          - agent: "@pm"
+            command: "*qa-loop resume {storyId}"
+            condition: QA Loop ativo para a story (.sia/qa-loop/{storyId}.json)
+      - step: 6
+        agent: "@dev"
+        command: "*apply-qa-fixes {storyId}"
+        task: apply-qa-fixes.md
+        output: Correções com testes; linha no Change Log; story em InReview para nova inspeção
+        condition: Gate FAIL (story em InProgress) ou inspeção reprovado (story em InReview)
+        alternatives: []
+      - step: 7
+        agent: "@validator"
+        command: "*revisar-feature {storyId}"
+        task: inspect.md
+        output: Relatório da nova inspeção
+        condition: Correções aplicadas, story em InReview e menos de 5 iterações
+        alternatives: []
+      - step: 8
+        agent: "@pm"
+        command: "*qa-gate {storyId}"
+        task: qa-gate.md
+        output: Novo veredito do gate, com ### Revisão (iteração N) em ## Resultado do QA
+        condition: Nova inspeção aprovado ou aprovado com ressalvas
+        alternatives:
+          - agent: "@dev"
+            command: "*apply-qa-fixes {storyId}"
+            condition: Nova inspeção reprovado (volta ao passo 6)
+      - step: 9
+        agent: "@devops"
+        command: "*push"
+        task: push.md
+        output: Branch no remoto, depois do portão de qualidade
+        condition: Story em Done (gate PASS, CONCERNS ou WAIVED)
+        alternatives:
+          - agent: "@dev"
+            command: "*apply-qa-fixes {storyId}"
+            condition: Gate FAIL (volta ao passo 6)
+      - step: 10
+        agent: "@devops"
+        command: "*create-pr {storyId}"
+        task: create-pr.md
+        output: Pull request com título convencional e links para story, gate e inspeção
+        condition: Branch da story no remoto
+        alternatives: []
+      - step: 11
+        agent: "@pm"
+        command: "*close-story {storyId}"
+        task: close-story.md
+        output: Fechamento administrativo da story (status continua Done)
+        condition: Story em Done, depois do push e do PR
+        alternatives: []
+      # Fim do ciclo: a próxima story recomeça no passo 1.
+
+  # 2. QA Loop: revisão iterativa conduzida pelo @pm (estado em .sia/qa-loop/{storyId}.json)
+  - id: qa-loop
+    name: QA Loop
+    workflow: qa-loop.yaml
+    description: Inspeção → gate → correção → nova inspeção, até 5 iterações, com estado salvo pelo @pm
+    max_iterations: 5                 # quality.qaLoop.maxIterations
+    chain:
+      - step: 1
+        agent: "@pm"
+        command: "*qa-loop {storyId}"
+        task: qa-loop.md
+        output: Loop iniciado na iteração 1, fase de inspeção
+        condition: Story em InReview
+        alternatives:
+          - agent: "@pm"
+            command: "*qa-loop resume {storyId}"
+            condition: Loop parado, escalado ou aguardando a etapa de outro agente
+          - agent: "@pm"
+            command: "*qa-loop status {storyId}"
+            condition: Consultar fase, iteração e histórico sem executar
+      - step: 2
+        agent: "@validator"
+        command: "*revisar-feature {storyId}"
+        task: inspect.md
+        output: Relatório de inspeção da iteração
+        condition: Loop na fase de inspeção
+        alternatives: []
+      - step: 3
+        agent: "@pm"
+        command: "*qa-loop resume {storyId}"
+        task: qa-loop.md
+        output: Gate da iteração (qa-gate.md); FAIL grava o pedido de correção
+        condition: Relatório da iteração gravado
+        alternatives:
+          - agent: "@pm"
+            command: "*qa-gate {storyId}"
+            condition: Gate avulso, fora do loop
+      - step: 4
+        agent: "@dev"
+        command: "*apply-qa-fixes {storyId}"
+        task: apply-qa-fixes.md
+        output: Correções aplicadas e story de volta em InReview
+        condition: Gate FAIL na iteração atual
+        alternatives: []
+      - step: 5
+        agent: "@pm"
+        command: "*qa-loop resume {storyId}"
+        task: qa-loop.md
+        output: Próxima iteração (fase de inspeção) ou escalada no limite de 5
+        condition: Correções da iteração registradas
+        alternatives:
+          - agent: "@pm"
+            command: "*qa-loop escalate {storyId}"
+            condition: Escalar manualmente para decisão humana
+      - step: 6
+        agent: "@validator"
+        command: "*revisar-feature {storyId}"
+        task: inspect.md
+        output: Relatório da nova inspeção
+        condition: Loop na fase de inspeção e menos de 5 iterações
+        alternatives: []
+
+  # 3. Spec Pipeline: antes da implementação
+  - id: spec-pipeline
+    name: Spec Pipeline
+    workflow: spec-pipeline.yaml
+    description: Transforma requisitos informais em spec executável e plano de implementação
+    chain:
+      - step: 1
+        agent: "@pm"
+        command: "*gather-requirements {storyId}"
+        task: gather-requirements.md
+        output: docs/stories/{storyId}/spec/requirements.json
+        condition: Feature nova ou mudança complexa
+        alternatives: []
+      - step: 2
+        agent: "@dev"
+        command: "*assess-complexity {storyId}"
+        task: assess-complexity.md
+        output: docs/stories/{storyId}/spec/complexity.json (SIMPLE, STANDARD ou COMPLEX)
+        condition: Requisitos levantados e origem não declarada simples
+        alternatives:
+          - agent: "@pm"
+            command: "*write-spec {storyId}"
+            condition: Origem declarada simples (classe SIMPLE; pula avaliação e pesquisa)
+      - step: 3
+        agent: "@pm"
+        command: "*research-deps {storyId}"
+        task: research-dependencies.md
+        output: docs/stories/{storyId}/spec/research.json
+        condition: Classe STANDARD ou COMPLEX
+        alternatives:
+          - agent: "@pm"
+            command: "*write-spec {storyId}"
+            condition: Classe SIMPLE
+      - step: 4
+        agent: "@pm"
+        command: "*write-spec {storyId}"
+        task: write-spec.md
+        output: docs/stories/{storyId}/spec/spec.md
+        condition: Requisitos levantados e pesquisa concluída quando a classe exige
+        alternatives: []
+      - step: 5
+        agent: "@pm"
+        command: "*critique-spec {storyId}"
+        task: critique-spec.md
+        output: docs/stories/{storyId}/spec/critique.json (APPROVED, NEEDS_REVISION ou BLOCKED)
+        condition: Spec escrita ou revisada
+        alternatives: []
+      - step: 6
+        agent: "@dev"
+        command: "*create-plan {storyId}"
+        task: create-plan.md
+        output: docs/stories/{storyId}/spec/implementation.yaml
+        condition: Crítica APPROVED nas classes STANDARD ou COMPLEX
+        alternatives:
+          - agent: "@pm"
+            command: "*write-spec {storyId}"
+            condition: Crítica NEEDS_REVISION, ou classe COMPLEX na primeira crítica (revisa e critica de novo)
+          - agent: "@pm"
+            command: "*validate-story {storyId}"
+            condition: Crítica APPROVED na classe SIMPLE (sem plano) e story em Draft
+      - step: 7
+        agent: "@pm"
+        command: "*validate-story {storyId}"
+        task: validate-story.md
+        output: Story validada (Draft → Ready); segue no SDC
+        condition: Spec aprovada e story em Draft
+        alternatives:
+          - agent: "@dev"
+            command: "*develop {storyId}"
+            condition: Story já em Ready
+
+  # 4. Brownfield Discovery: avaliação de legado
+  - id: brownfield-discovery
+    name: Brownfield Discovery
+    workflow: brownfield-discovery.yaml
+    description: Avaliação de débito técnico em 10 fases; as fases 4 a 6, 8 e 9 são prompts sem comando
+    chain:
+      - step: 1
+        agent: "@dev"
+        command: "*document-project"
+        task: document-project.md
+        output: docs/brownfield-architecture.md
+        condition: Código existente a avaliar
+        alternatives:
+          - agent: "@dev"
+            command: "*analyze-codebase"
+            condition: Basta o mapa de estrutura, stack, padrões e riscos
+      - step: 2
+        agent: "@dev"
+        command: "*db-audit"
+        task: db-security-audit.md
+        output: supabase/docs/SCHEMA.md e supabase/docs/DB-AUDIT.md
+        condition: Projeto tem banco de dados
+        alternatives: []
+      - step: 3
+        agent: "@dev"
+        command: "*create-front-end-spec"
+        task: create-doc.md
+        output: docs/front-end-spec.md
+        condition: Projeto tem frontend
+        alternatives:
+          - agent: "@dev"
+            command: "*ux-audit {caminho}"
+            condition: Foco em padrões duplicados, tokens e consistência da UI existente
+      - step: 4
+        agent: "@validator"
+        command: "*revisar-todo repositório"
+        task: inspect.md
+        output: Relatório de inspeção estrutural em docs/qa/inspections/
+        condition: Rascunho de débitos pronto (fase 4)
+        alternatives:
+          - agent: "@validator"
+            command: "*revisar-seguranca {caminho}"
+            condition: Autenticação ou dados sensíveis pedem inspeção de segurança dedicada
+      - step: 5
+        agent: "@pm"
+        command: "*create-epic"
+        task: create-epic.md
+        output: Epic de resolução de débitos em docs/prd/epic-{n}-{slug}.md
+        condition: Revisão de QA APPROVED e relatório executivo pronto (fases 7 a 9)
+        alternatives: []
+      - step: 6
+        agent: "@pm"
+        command: "*create-brownfield-story"
+        task: create-brownfield-story.md
+        output: Stories dos débitos priorizados, com status Draft
+        condition: Epic criado
+        alternatives:
+          - agent: "@pm"
+            command: "*create-story {epic}"
+            condition: PRD fragmentado disponível
+
+  # 5. Entrega: push, PR e fechamento da story
+  - id: delivery
+    name: Entrega
+    workflow: story-development-cycle.yaml
+    description: Story Done no remoto (push e PR) e fechamento administrativo
+    chain:
+      - step: 1
+        agent: "@devops"
+        command: "*push"
+        task: push.md
+        output: Branch no remoto, depois do portão de qualidade
+        condition: Story em Done
+        alternatives: []
+      - step: 2
+        agent: "@devops"
+        command: "*create-pr {storyId}"
+        task: create-pr.md
+        output: Pull request com título convencional; merge a pedido do usuário
+        condition: Branch da story no remoto
+        alternatives: []
+      - step: 3
+        agent: "@pm"
+        command: "*close-story {storyId}"
+        task: close-story.md
+        output: Fechamento administrativo; status continua Done
+        condition: Story em Done com PR criado ou com merge
+        alternatives:
+          - agent: "@devops"
+            command: "*vercel-deploy production"
+            condition: Merge na branch de produção sem deploy automático na Vercel
+
+  # 6. Entrega em produção na Vercel
+  - id: delivery-vercel
+    name: Entrega em produção (Vercel)
+    description: Deploy de produção que encerra a entrega de uma story, e fechamento administrativo
+    chain:
+      - step: 1
+        agent: "@devops"
+        command: "*vercel-deploy production"
+        task: vercel-deploy.md
+        output: Deploy de produção verificado, com plano de rollback
+        condition: Merge na branch de produção (integrations.vercel.productionBranch) com o build verificado
+        alternatives:
+          - agent: "@devops"
+            command: "*vercel-deploy preview"
+            condition: Conferir em preview antes da produção
+      - step: 2
+        agent: "@pm"
+        command: "*close-story {storyId}"
+        task: close-story.md
+        output: Fechamento administrativo; status continua Done
+        condition: Produção publicada encerrando a entrega da story
+        alternatives: []
+
+  # 7. Orquestração de Epic: ondas de stories (estado em docs/prd/epic-{n}-execution.yaml)
+  - id: epic
+    name: Orquestração de Epic
+    workflow: epic-orchestration.yaml
+    description: Epic executado em ondas; cada story passa pelo SDC completo
+    chain:
+      - step: 1
+        agent: "@pm"
+        command: "*create-epic"
+        task: create-epic.md
+        output: docs/prd/epic-{n}-{slug}.md com stories previstas, executores e gates
+        condition: Objetivo do epic definido (PRD ou pedido)
+        alternatives: []
+      - step: 2
+        agent: "@pm"
+        command: "*execute-epic {epic}"
+        task: execute-epic.md
+        output: Plano docs/prd/epic-{n}-execution.yaml e onda 1 em execução, cada story pelo SDC
+        condition: Epic com 4 ou mais stories previstas e árvore git limpa
+        alternatives:
+          - agent: "@pm"
+            command: "*execute-epic {epic} --mode=preflight"
+            condition: Risco de conflito desconhecido; análise de dependências e arquivos antes de executar
+          - agent: "@pm"
+            command: "*execute-epic {epic} --mode=yolo"
+            condition: Baixo risco de conflito; GO automático entre ondas
+          - agent: "@pm"
+            command: "*create-story {epic}"
+            condition: Epic com 1 a 3 stories (SDC direto, sem ondas)
+      - step: 3
+        agent: "@validator"
+        command: "*revisar-feature epic-{epic}"
+        task: inspect.md
+        output: Relatório de integração da onda (aprovado, aprovado com ressalvas ou reprovado)
+        condition: Stories da onda concluídas no ciclo
+        alternatives: []
+      - step: 4
+        agent: "@pm"
+        command: "*execute-epic {epic} continue"
+        task: execute-epic.md
+        output: Merge da onda pelo @devops na ordem do plano, checkpoint e próxima onda (ou gate final)
+        condition: Gate da onda registrado no plano
+        alternatives:
+          - agent: "@pm"
+            command: "*execute-epic {epic} status"
+            condition: Ver o andamento sem executar nada

@@ -120,6 +120,7 @@ Quando o usuário não tem permissão de escrita no repositório de destino:
    ```
 
 ### 9. Merge (só a pedido do usuário)
+Quando a task é chamada por `*merge-pr {número}`, execute só este passo e o passo 10.
 1. Confira os checks e as aprovações: `gh pr checks {número}` e `gh pr view {número} --json reviewDecision,mergeable`.
 2. Checks falhando ou revisão pendente → não faça merge; informe.
 3. Mostre estratégia e título final e peça confirmação. Padrão: squash, que usa o título do PR como mensagem do commit.

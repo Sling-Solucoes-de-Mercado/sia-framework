@@ -1,0 +1,205 @@
+workflow:
+  id: epic-orchestration
+  name: Orquestração de Epic em Ondas
+  version: "1.0"
+  description: >-
+    Executa um epic em ondas definidas no plano de execução. Cada story da onda passa pelo
+    SDC completo e as stories independentes da mesma onda podem correr em paralelo, cada uma
+    na sua branch. No fim de cada onda, o @validator inspeciona a integração e o @devops integra
+    as branches na ordem do plano; entre ondas, o @pm faz um checkpoint. Conduzido por
+    @pm *execute-epic {epic} (task execute-epic.md).
+  type: generic
+  project_types: [greenfield, brownfield]
+  execution_modes: [yolo, interactive, preflight]
+  source: [development/workflows/epic-orchestration.yaml]
+
+  trigger: '*execute-epic {epic} [start|continue|status|skip-story {storyId}|abort] [--mode=interactive|yolo|preflight]'
+
+  inputs:
+    epic: docs/prd/epic-{n}-{slug}.md
+    plan: docs/prd/epic-{n}-execution.yaml      # ondas, stories, dependências, arquivos, merge_order e estado
+
+  config:
+    inner_workflow: story-development-cycle.yaml
+    max_parallel: 4               # stories em paralelo por onda
+    gate_max_retries: 2           # novas revisões de integração depois de uma reprovação
+    state: docs/prd/epic-{n}-execution.yaml   # o estado fica no próprio plano, para retomar em outra sessão
+
+  modes:
+    interactive: checkpoint humano entre ondas (padrão)
+    yolo: GO automático entre ondas; para só em falha ou gate de onda reprovado
+    preflight: antes de executar, mostra arquivos por onda, sobreposições, stories sem File List e a cadeia de dependências
+
+  sequence:
+    - step: build_plan
+      id: plan
+      phase: 0
+      agent: pm
+      hat: product
+      command: '*execute-epic {epic}'
+      task: execute-epic.md
+      creates: docs/prd/epic-{n}-execution.yaml
+      requires: []
+      notes: |
+        Monta o plano: stories do epic (previstas sem arquivo entram na fase create), dependências,
+        ondas por nível de dependência e serialização de stories que mexem nos mesmos arquivos, até
+        max_parallel por onda. Exige árvore git limpa. O executor de cada story é o @dev (com o chapéu
+        da story) e o gate é do @pm [Qualidade], sempre diferente do executor.
+      success_criteria:
+        - Plano gravado e aprovado (interactive e preflight) ou gravado direto (yolo)
+
+    - step: story_execution
+      id: stories
+      phase: 1
+      agent: pm
+      hat: product
+      workflow: story-development-cycle.yaml
+      requires: [plan]
+      repeats: para cada story da onda
+      parallel: true
+      notes: |
+        Cada story passa pelo ciclo completo: @pm *create-story {epic} (se ainda não existir),
+        @pm *validate-story {storyId}, execução pelo executor declarado (@dev *develop {storyId} por
+        padrão; @devops *develop {storyId} em infraestrutura; @pm *execute-research-story {storyId}
+        em pesquisa, sem inspeção), @validator *revisar-feature {storyId}, @pm *qa-gate {storyId},
+        @devops *push e @devops *create-pr {storyId}.
+        Paralelismo, quando o plano permite: cada story na própria branch (feat/{storyId}-{slug}) e em
+        worktree isolada (@devops *worktree create {storyId}); sem isolamento possível, em sequência.
+        Com subagentes na IDE, cada um conduz a fase da sua story; sem subagentes, o @pm mostra o
+        comando e para até @pm *execute-epic {epic} continue.
+        Story que falha no QA Loop vira failed; as que dependem dela, em ondas seguintes, viram blocked.
+      success_criteria:
+        - Todas as stories da onda concluídas (ou falhas decididas pelo usuário)
+
+    - step: wave_fix
+      id: wave_fix
+      phase: 1b
+      agent: dev
+      hat: dev
+      command: '*apply-qa-fixes {storyId}'
+      task: apply-qa-fixes.md
+      requires: [stories]
+      condition: revisão de integração da onda reprovada e o usuário escolheu corrigir
+      notes: |
+        Pulado no primeiro passe. Corrige as stories apontadas pelo relatório de integração e volta
+        para nova revisão, no máximo 2 vezes (gate_max_retries); esgotadas, escala para o usuário.
+
+    - step: integration_review
+      id: wave_gate
+      phase: 2
+      agent: validator
+      command: '*revisar-feature epic-{epic}'
+      task: inspect.md
+      requires: [stories]
+      notes: |
+        Revisão de integração da onda, com as stories da onda como escopo (a revisão de cada story já
+        foi feita no SDC). Foco: compatibilidade entre as stories, conflito de arquivos entre branches,
+        suíte completa de testes com tudo junto, regressão das mudanças paralelas e consistência de
+        arquitetura. aprovado ou aprovado com ressalvas: APPROVED. reprovado: REJECTED, com as opções
+        1. corrigir (wave_fix) e repetir, 2. aceitar com justificativa registrada no plano, 3. abortar.
+        Desvio de arquitetura apontado: o @dev [Arquitetura] decide e registra ADR.
+      on_verdict:
+        aprovado: { next: merge }
+        aprovado com ressalvas: { next: merge }
+        reprovado: { next: wave_fix }
+      success_criteria:
+        - Veredito aprovado ou aprovado com ressalvas, ou aceite justificado no plano
+      on_failure: { goto: wave_fix, reason: revisão de integração reprovada }
+
+    - step: merge_wave
+      id: merge
+      phase: 3
+      agent: devops
+      action: Integrar as branches ou os PRs da onda na ordem de merge_order
+      requires: [wave_gate]
+      notes: |
+        Merge na ordem do plano, a pedido do usuário e com checks e aprovações em dia (passo de merge
+        da task create-pr.md). Depois: suíte completa no resultado integrado, tag wave-{N}-complete
+        quando o plano pedir e limpeza das worktrees (@devops *worktree cleanup). Conflito: resolva na
+        ordem do plano e rode os testes de novo; persistindo, escala para o usuário.
+      success_criteria:
+        - Branches da onda integradas e suíte completa passando
+
+    - step: wave_checkpoint
+      id: checkpoint
+      phase: 4
+      agent: pm
+      hat: product
+      command: '*execute-epic {epic} continue'
+      task: execute-epic.md
+      requires: [merge]
+      elicit: true
+      options:
+        1: 'GO: segue para a próxima onda'
+        2: 'PAUSE: grava o plano e para'
+        3: 'REVIEW: mostra o resumo detalhado da onda antes de decidir'
+        4: 'ABORT: encerra o epic'
+      notes: |
+        Marca a onda como completed e grava o plano. Modo interactive: pergunta com as opções
+        numeradas. Modo yolo: GO automático. Há outra onda: volta para stories.
+
+    - step: final_gate
+      id: final_gate
+      phase: 5
+      agent: validator
+      command: '*revisar-feature epic-{epic}'
+      task: inspect.md
+      requires: [checkpoint]
+      condition: última onda concluída
+      notes: |
+        Gate final sobre o epic inteiro. Com bug_verification no plano, confere cada bug (corrigido
+        por qual story, como verificar). Aprovado: status completed no plano e epic concluído; o @pm
+        mostra o relatório final (ondas, stories, gates, branches e pendências).
+      success_criteria:
+        - Gate final aprovado e registrado em final_gate no plano
+
+  error_handling:
+    story_failed: a story fica failed depois das correções do QA Loop; as dependentes ficam blocked; o usuário decide entre tentar de novo, seguir com resultado parcial ou abortar
+    gate_failed: correção das stories apontadas e nova revisão, até 2 vezes; depois, escala para o usuário
+    merge_conflict: resolver na ordem do plano e rodar os testes de novo; persistindo, escala para o usuário
+
+  completion:
+    notes: |
+      Todas as ondas concluídas e o gate final aprovado. O plano registra ondas, stories e vereditos.
+      Epic pausado: retome com @pm *execute-epic {epic} continue; andamento: @pm *execute-epic {epic} status.
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A(["@pm *execute-epic {epic}"]) --> B["Monta o plano docs/prd/epic-{n}-execution.yaml"]
+      B --> W[Onda N]
+      W --> S[SDC de cada story da onda, em paralelo quando o plano permite]
+      S --> G["@validator: *revisar-feature epic-{epic}"]
+      G --> V{Veredito}
+      V -->|reprovado| F["@dev: *apply-qa-fixes nas stories apontadas"]
+      F --> G
+      V -->|aprovado ou com ressalvas| M["@devops: merge na ordem do plano e testes"]
+      M --> K{Checkpoint do @pm}
+      K -->|GO| N{Há outra onda?}
+      N -->|sim| W
+      N -->|não| Z["@validator: gate final do epic"]
+      K -->|REVIEW| R[Resumo da onda]
+      R --> K
+      K -->|PAUSE| P(["Estado gravado no plano"])
+      K -->|ABORT| X([Epic encerrado])
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - Epic com 4 ou mais stories que formam ondas paralelas
+      - Stories com grafo de dependências claro, parte paralela e parte sequencial
+      - Necessidade de gate de integração entre grupos de stories relacionadas
+      - Capacidade para frentes de desenvolvimento em paralelo
+    when_not_to_use:
+      - Epic com 1 a 3 stories (use o SDC direto)
+      - Stories todas sequenciais (SDC em sequência)
+      - Correção simples sem risco de integração
+
+  handoff_prompts:
+    plan_to_stories: "Plano do epic {epic} gravado: {stories} stories em {ondas} ondas. Iniciando a onda 1."
+    stories_to_wave_gate: "Onda {N}: {concluidas}/{total} stories concluídas no SDC. Próximo: @validator *revisar-feature epic-{epic}"
+    wave_gate_to_wave_fix: "Revisão de integração da onda {N} reprovada: {relatorio}. Próximo: @dev *apply-qa-fixes {storyId} nas stories apontadas"
+    wave_gate_to_merge: "Revisão de integração da onda {N}: {veredito}. Próximo: @devops integra as branches na ordem do plano"
+    merge_to_checkpoint: "Onda {N} integrada. Escolha: 1. GO, 2. PAUSE, 3. REVIEW, 4. ABORT"
+    paused: "Epic {epic} pausado na onda {N}. Para retomar: @pm *execute-epic {epic} continue"
+    complete: "Epic {epic} concluído: {ondas} ondas, {stories} stories. Gate final: {veredito}."

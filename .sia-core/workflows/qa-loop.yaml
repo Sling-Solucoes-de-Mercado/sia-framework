@@ -1,0 +1,156 @@
+workflow:
+  id: qa-loop
+  name: QA Loop
+  version: "1.0"
+  description: >-
+    Ciclo iterativo de revisão e correção de uma story: inspeção do @validator, QA gate do
+    @pm [Qualidade], correção do @dev e nova inspeção. Até quality.qaLoop.maxIterations (5)
+    iterações; no limite ou em bloqueio, escala para uma pessoa com o contexto completo.
+    Conduzido por @pm *qa-loop {storyId} (task qa-loop.md), que guarda o estado entre as etapas.
+  type: generic
+  project_types: [greenfield, brownfield]
+  execution_modes: [yolo, interactive]
+  source: [development/workflows/qa-loop.yaml]
+
+  trigger: '*qa-loop [start|resume|stop|escalate|status] {storyId}'   # comando do @pm, chapéu Qualidade
+
+  config:
+    max_iterations: 5                          # quality.qaLoop.maxIterations
+    state_file: .sia/qa-loop/{storyId}.json    # estado e histórico do ciclo (task qa-loop.md)
+    inspection_command: revisar-feature        # quality.inspection.command
+    fix_retries: 2                             # tentativas de correção antes de escalar com fix_failure
+
+  actions:
+    start: inicia o loop (padrão sem ação); start --reset descarta o estado anterior
+    resume: retoma da fase gravada, depois que a etapa de outro agente terminou
+    stop: grava status stopped; o loop pode ser retomado depois
+    escalate: escala manualmente (manual_escalate)
+    status: mostra fase, iteração, último veredito, histórico e próximo comando
+
+  sequence:
+    - step: inspect
+      id: inspect
+      phase: 1
+      agent: validator
+      command: '*revisar-feature {storyId}'
+      task: inspect.md
+      creates: docs/qa/inspections/AAAA-MM-DD-HHmm-revisar-feature-{storyId}.md
+      requires: []
+      notes: |
+        Inspeção da iteração nas 7 lentes. Concluída quando há relatório da story com revision igual
+        ao HEAD atual. Da iteração 2 em diante, o relatório anterior e o pedido de correção fazem parte
+        do pedido: o @validator confere cada correção.
+        No loop, o gate roda depois de toda inspeção, inclusive reprovada (que resulta em FAIL).
+        Fora do loop, o SDC leva a inspeção reprovada direto ao @dev.
+      success_criteria:
+        - Relatório novo gravado (o da iteração anterior nunca é sobrescrito)
+
+    - step: gate
+      id: gate
+      phase: 2
+      agent: pm
+      hat: quality
+      command: '*qa-gate {storyId}'
+      task: qa-gate.md
+      creates: docs/qa/gates/{storyId}-{slug}.yml
+      requires: [inspect]
+      notes: |
+        O gate lê a iteração do arquivo de estado e a grava no campo iteration do arquivo do gate.
+        FAIL: o gate já grava ### Pedido de correção (iteração N) via create-fix-request.md; se isso
+        falhar, o @dev usa os top_issues do gate.
+        Gate que não sai por depender de decisão humana (critério ambíguo, conflito de escopo):
+        escalada com verdict_blocked.
+      on_verdict:
+        PASS: { action: complete }
+        CONCERNS: { action: complete }
+        WAIVED: { action: complete }
+        FAIL: { next: fix }
+      success_criteria:
+        - Gate registrado com a iteração atual
+
+    - step: apply_fixes
+      id: fix
+      phase: 3
+      agent: dev
+      hat: dev
+      command: '*apply-qa-fixes {storyId}'
+      task: apply-qa-fixes.md
+      requires: [gate]
+      condition: gate FAIL
+      notes: |
+        Corrige só os itens do pedido de correção, com testes, e devolve a story para InReview.
+        Concluída quando a story volta a InReview e as Notas de conclusão trazem
+        #### Correções do QA (iteração N). Falha: repetir até 2 vezes; depois, escalada com fix_failure.
+      success_criteria:
+        - Story em InReview com as correções da iteração registradas
+
+    - step: next_iteration
+      id: next_iteration
+      phase: 4
+      agent: pm
+      hat: quality
+      command: '*qa-loop resume {storyId}'
+      task: qa-loop.md
+      requires: [fix]
+      notes: |
+        Iteração atual menor que max_iterations: soma 1, volta para inspect e anuncia
+        "Iniciando a iteração {n}/{max}". Igual a max_iterations: escalada com max_iterations_reached.
+      condition_check:
+        - condition: iteração menor que max_iterations
+          next: inspect
+        - condition: iteração igual a max_iterations
+          action: escalate
+          reason: max_iterations_reached
+
+  escalation:
+    triggers:
+      - max_iterations_reached           # 5 iterações sem PASS, CONCERNS ou WAIVED
+      - verdict_blocked                  # o gate depende de decisão humana ou não sai depois de 2 tentativas
+      - fix_failure                      # a correção não foi aplicada depois de 2 tentativas
+      - manual_escalate                  # *qa-loop escalate {storyId}
+    action: |
+      Grave status escalated e monte o pacote de contexto: arquivo de estado, ## Resultado do QA com
+      todas as iterações, relatórios de inspeção do histórico, arquivo do gate e resumo das iterações.
+      Apresente ao usuário o motivo, as iterações concluídas, o último veredito e as pendências. Opções:
+        1. Retomar o loop: @pm *qa-loop resume {storyId}
+        2. Corrigir manualmente e seguir com inspeção e gate avulsos: @validator *revisar-feature {storyId} e @pm *qa-gate {storyId}
+        3. Rejeitar a story e registrar o acompanhamento no backlog: @pm *backlog add
+      Escalada por max_iterations_reached só é retomada se quality.qaLoop.maxIterations for aumentado.
+
+  completion:
+    notes: |
+      Loop concluído com PASS, CONCERNS ou WAIVED: story Done, estado completed e resumo com o
+      histórico de iterações. Próximo: @devops *push.
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A(["@pm *qa-loop {storyId}"]) --> B["@validator: *revisar-feature"]
+      B --> D["@pm Qualidade: *qa-gate"]
+      D --> E{Gate}
+      E -->|PASS, CONCERNS ou WAIVED| Z([Loop concluído: story Done])
+      E -->|FAIL, com pedido de correção| F["@dev: *apply-qa-fixes"]
+      E -->|sem veredito| X([Escala: verdict_blocked])
+      F --> R["@pm: *qa-loop resume"]
+      R --> I{Menos de 5 iterações?}
+      I -->|sim| B
+      I -->|não| Y([Escala: max_iterations_reached])
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - Story em InReview que deve chegar a Done sem conduzir cada etapa à mão
+      - Gate FAIL ou inspeção reprovada que pede mais de uma volta de correção
+      - Para retomar, pausar, escalar ou consultar um loop em andamento
+    when_not_to_use:
+      - Primeira passagem simples da story (o SDC já cobre inspeção e gate)
+      - Mudança de escopo ou de critério de aceite (@pm *correct-course)
+      - Story sem implementação a revisar
+
+  handoff_prompts:
+    inspect_to_gate: "Iteração {n}: inspeção {veredito} ({relatorio}). Próximo: @pm *qa-loop resume {storyId}, que roda o gate"
+    gate_to_fix: "Iteração {n}: gate FAIL, pedido de correção registrado. Próximo: @dev *apply-qa-fixes {storyId}"
+    fix_to_next_iteration: "Correções da iteração {n} aplicadas. Próximo: @pm *qa-loop resume {storyId}"
+    next_iteration_to_inspect: "Iniciando a iteração {n}/5. Próximo: @validator *revisar-feature {storyId}"
+    complete: "QA Loop concluído para {storyId}: gate {gate} na iteração {n}/5, story Done. Próximo: @devops *push"
+    escalation: "QA Loop escalado para {storyId}: {motivo}. Iterações: {n}/5. Último veredito: {veredito}. Escolha: 1. retomar, 2. corrigir manualmente, 3. rejeitar e registrar no backlog."

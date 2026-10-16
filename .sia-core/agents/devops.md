@@ -139,6 +139,11 @@ commands:
     task: create-pr.md
     template: github-pr-tmpl.md
     description: 'Cria o pull request com título convencional e contexto da story (exclusivo)'
+  - name: merge-pr
+    args: '{número}'
+    visibility: [full, quick]
+    task: create-pr.md
+    description: 'Faz merge do PR com checks e aprovações conferidos, em squash, sem furar a proteção de branch (exclusivo)'
   - name: release
     args: '[major|minor|patch]'
     visibility: [full, quick]

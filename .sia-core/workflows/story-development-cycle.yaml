@@ -1,0 +1,249 @@
+workflow:
+  id: story-development-cycle
+  name: Ciclo de Desenvolvimento de Story
+  version: "1.0"
+  description: >-
+    Ciclo completo de toda story no SIA: criação, validação de 10 pontos, implementação,
+    inspeção técnica do @validator, QA gate do @pm, entrega pelo @devops e fechamento.
+    Vale para projetos greenfield e brownfield e é o ciclo interno da orquestração de epic.
+  type: generic
+  project_types: [greenfield, brownfield]
+  execution_modes: [yolo, interactive, preflight]
+  source: [development/workflows/story-development-cycle.yaml]
+
+  config:
+    max_fix_iterations: 5                 # quality.qaLoop.maxIterations
+    inspection_required: true             # quality.inspection.requiredBeforeGate
+    inspection_command: revisar-feature   # quality.inspection.command
+    story_min_score: 7                    # quality.storyValidation.minScore
+    # Os ids create, validate, develop, inspect, qa-gate e push são as fases de `sia sdc verify {storyId} {fase}`.
+
+  phases:
+    - phase_1: Criação
+    - phase_2: Validação
+    - phase_3: Implementação (3b, correção, só depois de inspeção reprovada ou gate FAIL)
+    - phase_4: Inspeção
+    - phase_5: QA gate
+    - phase_6: Entrega
+    - phase_7: Fechamento
+
+  sequence:
+    - step: create_story
+      id: create
+      phase: 1
+      agent: pm
+      hat: scrum
+      command: '*create-story {epic}'
+      task: create-story.md
+      creates: docs/stories/{storyId}-{slug}.story.md
+      requires: []
+      notes: |
+        Cria a próxima story do epic a partir do PRD fragmentado. Em projeto existente sem PRD
+        fragmentado, use *create-brownfield-story (task create-brownfield-story.md).
+        Critérios de aceite testáveis (Dado/Quando/Então), escopo Dentro/Fora, dependências,
+        riscos e executor definidos. A story nasce em Draft.
+      success_criteria:
+        - Story criada com as seções canônicas e status Draft
+        - Critérios de aceite testáveis
+        - Escopo, dependências e riscos registrados
+
+    - step: validate_story
+      id: validate
+      phase: 2
+      agent: pm
+      hat: owner
+      command: '*validate-story {storyId}'
+      task: validate-story.md
+      requires: [create]
+      notes: |
+        Checklist de 10 pontos com o rigor completo do chapéu Product Owner, mesmo quando a story
+        foi criada pelo próprio @pm com o chapéu Scrum.
+        GO (nota >= 7/10): Draft → Ready, registrado no Change Log.
+        NO-GO: lista as correções obrigatórias; a story é ajustada (chapéu Scrum) e validada de novo.
+      success_criteria:
+        - Nota maior ou igual a quality.storyValidation.minScore (7)
+        - Status Ready e transição registrada no Change Log
+      on_failure: { goto: create, reason: NO-GO }
+
+    - step: develop_story
+      id: develop
+      phase: 3
+      agent: dev
+      hat: dev
+      command: '*develop {storyId}'
+      task: develop-story.md
+      requires: [validate]
+      by_executor:                        # executor declarado em ## Executor da story (Constitution, Artigo II)
+        dev: { command: '*develop {storyId}', note: padrão }
+        devops: { command: '*develop {storyId}', note: story de infraestrutura (CI/CD, deploy) }
+        pm: { hat: analyst, command: '*execute-research-story {storyId}', note: story de pesquisa; sem inspeção, vai direto ao qa-gate }
+      notes: |
+        Só o executor declarado faz Ready → InProgress → InReview. Modos do *develop: interactive
+        (padrão), yolo (*develop {storyId} yolo; decisões em ### Decisões (modo YOLO) da story) e
+        preflight (*develop {storyId} preflight).
+        Ready → InProgress no início. Para cada task: implementar, testar, validar, marcar [x] e
+        atualizar a File List. Ao concluir: lint, typecheck, testes e build passando (quando há
+        código), Definição de Pronto conferida e InProgress → InReview.
+      success_criteria:
+        - Todos os critérios de aceite implementados e cobertos por testes
+        - Lint, typecheck, testes e build passando
+        - File List completa
+        - Status InReview e as duas transições registradas no Change Log
+
+    - step: apply_fixes
+      id: fix
+      phase: 3b
+      agent: dev
+      hat: dev
+      command: '*apply-qa-fixes {storyId}'
+      task: apply-qa-fixes.md
+      requires: [develop]
+      condition: há inspeção reprovado ou gate FAIL sem correção aplicada
+      notes: |
+        Pulado no primeiro passe. Volta a rodar quando a inspeção reprova ou o gate dá FAIL
+        (on_failure de inspect e de qa-gate). Corrige só o que o relatório ou o pedido de correção
+        listam, com testes, e nunca se autoaprova.
+        Inspeção reprovada antes do gate: a story continua em InReview (sem mudar status), o @dev
+        acrescenta uma linha no Change Log e pede nova inspeção.
+        Gate FAIL: a story está em InProgress; depois das correções, o @dev a devolve para InReview.
+        Cada volta (correção e nova inspeção) é uma iteração do QA Loop. No limite de
+        quality.qaLoop.maxIterations (5), pare e escale para o usuário; para conduzir as voltas com
+        estado próprio, use @pm *qa-loop {storyId} (workflow qa-loop).
+      success_criteria:
+        - Correções aplicadas com testes passando
+        - Story em InReview, pronta para nova inspeção
+
+    - step: inspect_delivery
+      id: inspect
+      phase: 4
+      agent: validator
+      command: '*revisar-feature {storyId}'
+      task: inspect.md
+      creates: docs/qa/inspections/AAAA-MM-DD-HHmm-revisar-feature-{storyId}.md
+      requires: [develop]
+      condition: a story altera código ou configuração (story de pesquisa vai direto ao qa-gate)
+      notes: |
+        Inspeção independente nas 7 lentes, com evidência. Não muda status.
+        aprovado ou aprovado com ressalvas: segue para o QA gate.
+        reprovado: volta para a correção (fix); a story continua em InReview.
+      success_criteria:
+        - Relatório novo gravado, com frontmatter
+        - Veredito aprovado ou aprovado com ressalvas
+      on_failure: { goto: fix, reason: inspeção reprovado }
+
+    - step: qa_gate
+      id: qa-gate
+      phase: 5
+      agent: pm
+      hat: quality
+      command: '*qa-gate {storyId}'
+      task: qa-gate.md
+      creates: docs/qa/gates/{storyId}-{slug}.yml
+      requires: [develop]
+      notes: |
+        Roda depois da inspeção (story de pesquisa: direto depois da execução). 7 verificações (regra
+        story-lifecycle), apoiadas no relatório de inspeção, que é obrigatório quando há código:
+        sem relatório válido, o gate não sai PASS.
+        Severidade da inspeção no gate: bloqueante e alto → high; medio → medium; baixo → low;
+        nota fica fora de top_issues. Achado bloqueante nunca é dispensado com WAIVED.
+        PASS, CONCERNS ou WAIVED: InReview → Done.
+        FAIL: InReview → InProgress, com ### Pedido de correção (iteração N) em ## Resultado do QA.
+        Da iteração 2 em diante, o gate acrescenta ### Revisão (iteração N) em ## Resultado do QA.
+      success_criteria:
+        - Arquivo do gate gravado com reviewed_revision e inspection_report
+        - Gate PASS, CONCERNS ou WAIVED, com status Done e Change Log atualizado
+      on_failure: { goto: fix, reason: gate FAIL }
+
+    - step: push_branch
+      id: push
+      phase: 6
+      agent: devops
+      command: '*push'
+      task: push.md
+      requires: [qa-gate]
+      notes: |
+        Roda o portão de qualidade (lint, typecheck, testes, build, segredos e status Done) e pede
+        confirmação antes do push. O @devops nunca muda status de story.
+      success_criteria:
+        - Portão de qualidade aprovado
+        - Branch da story no remoto
+
+    - step: create_pull_request
+      id: pr
+      phase: 6
+      agent: devops
+      command: '*create-pr {storyId}'
+      task: create-pr.md
+      requires: [push]
+      notes: |
+        PR com título convencional e links para story, arquivo do gate e relatório de inspeção.
+        Merge só a pedido do usuário, com checks e aprovações em dia.
+      success_criteria:
+        - Pull request criado
+
+    - step: close_story
+      id: close
+      phase: 7
+      agent: pm
+      hat: owner
+      command: '*close-story {storyId}'
+      task: close-story.md
+      requires: [pr]
+      notes: |
+        Fechamento administrativo (epic, backlog, índice e Change Log). Não muda status: a story
+        continua Done. Sugere a próxima story do epic, quando houver.
+      success_criteria:
+        - Story fechada sem registros duplicados
+        - Status continua Done
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A([Início]) --> B["@pm Scrum: *create-story, status Draft"]
+      B --> C["@pm Product Owner: *validate-story"]
+      C --> D{GO?}
+      D -->|NO-GO| B
+      D -->|GO: Ready| E["Executor declarado: *develop ou *execute-research-story, status InReview"]
+      E -->|story com código ou configuração| F["@validator: *revisar-feature"]
+      E -->|story de pesquisa| I
+      F --> G{Veredito da inspeção}
+      G -->|reprovado| H["@dev: *apply-qa-fixes"]
+      G -->|aprovado ou com ressalvas| I["@pm Qualidade: *qa-gate"]
+      I --> J{Gate}
+      J -->|FAIL: InProgress| H
+      H --> K{Menos de 5 iterações?}
+      K -->|sim| F
+      K -->|não| X([Escala para o usuário])
+      J -->|PASS, CONCERNS ou WAIVED: Done| L["@devops: *push"]
+      L --> M["@devops: *create-pr"]
+      M --> N["@pm Product Owner: *close-story"]
+      N --> O{Mais stories?}
+      O -->|sim| B
+      O -->|não| P([Fim])
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - Toda story, em projeto greenfield ou brownfield
+      - Correção de bug simples ou hotfix (modo yolo no *develop)
+      - Ciclo interno de cada story na orquestração de epic
+    when_not_to_use:
+      - Requisito ainda informal ou complexo (rode antes o spec-pipeline)
+      - Planejamento de produto novo (greenfield) ou de evolução grande (brownfield)
+      - Avaliação de débito técnico de código existente (brownfield-discovery)
+
+  handoff_prompts:
+    create_to_validate: "Story {storyId} criada (Draft). Próximo: @pm *validate-story {storyId}"
+    validate_to_create: "Story {storyId} com NO-GO (nota {nota}/10). Ajuste os itens apontados e rode de novo @pm *validate-story {storyId}"
+    validate_to_develop: "Story {storyId} validada (GO, nota {nota}/10, Ready). Próximo: @dev *develop {storyId}"
+    develop_to_inspect: "Story {storyId} implementada (InReview). Próximo: @validator *revisar-feature {storyId}"
+    develop_to_qa-gate: "Story de pesquisa {storyId} concluída (InReview), sem inspeção. Próximo: @pm *qa-gate {storyId}"
+    inspect_to_qa-gate: "Inspeção {veredito}: {relatorio}. Próximo: @pm *qa-gate {storyId}"
+    inspect_to_fix: "Inspeção reprovado: {relatorio}. Próximo: @dev *apply-qa-fixes {storyId}"
+    qa-gate_to_fix: "Gate FAIL (iteração {n}), story em InProgress. Próximo: @dev *apply-qa-fixes {storyId}"
+    fix_to_inspect: "Correções aplicadas (iteração {n}), story em InReview. Próximo: @validator *revisar-feature {storyId}"
+    qa-gate_to_push: "Gate {gate}, story Done. Próximo: @devops *push e @devops *create-pr {storyId}"
+    push_to_pr: "Branch no remoto. Próximo: @devops *create-pr {storyId}"
+    pr_to_close: "PR criado: {url}. Próximo: @pm *close-story {storyId}"
+    escalation: "Story {storyId} chegou a 5 iterações de correção sem aprovação. Decisão do usuário (workflow qa-loop)."
+    complete: "Story {storyId} fechada. Próxima story: @pm *create-story {epic}"

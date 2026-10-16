@@ -1,0 +1,294 @@
+workflow:
+  id: greenfield
+  name: Produto Novo (Greenfield)
+  version: "1.0"
+  description: >-
+    Leva um produto novo do conceito ao desenvolvimento: ambiente, brief, PRD, especificação
+    de UI, arquitetura, validação dos artefatos, fragmentação e o SDC de cada story.
+    Uma única sequência atende três tipos de projeto pela variável project_type:
+    fullstack (aplicação completa), service (API ou serviço de backend) e ui (frontend).
+    Passos com condition só rodam nos tipos indicados.
+  type: greenfield
+  project_types: [greenfield]
+  execution_modes: [interactive]
+  source:
+    - development/workflows/greenfield-fullstack.yaml
+    - development/workflows/greenfield-service.yaml
+    - development/workflows/greenfield-ui.yaml
+
+  variables:
+    project_type:
+      values: [fullstack, service, ui]
+      default: fullstack
+      elicit: true
+      prompt: |
+        Qual é o tipo do projeto?
+        1. fullstack: aplicação completa, com frontend e backend
+        2. service: API ou serviço de backend, sem frontend
+        3. ui: frontend, sem backend próprio
+
+  phases:
+    - phase_0: Preparação do ambiente
+    - phase_1: Descoberta e planejamento
+    - phase_2: Fragmentação dos documentos
+    - phase_3: Ciclo de desenvolvimento
+
+  sequence:
+    # ── Fase 0: preparação do ambiente ─────────────────────────
+    - step: environment_bootstrap
+      id: bootstrap
+      phase: 0
+      agent: devops
+      command: '*environment-bootstrap'
+      task: environment-bootstrap.md
+      requires: []
+      condition: ambiente ainda não preparado (git, remoto, estrutura de docs e ferramentas; confira com sia doctor)
+      notes: |
+        Primeiro passo, antes de qualquer planejamento: confere e instala as CLIs, autentica os
+        serviços, cria o repositório local e no GitHub e monta a estrutura de docs do SIA.
+        Rode de novo ao trocar de máquina ou quando alguém novo entrar no time.
+      success_criteria:
+        - Repositório git com remoto configurado
+        - sia doctor sem erros
+
+    # ── Fase 1: descoberta e planejamento ──────────────────────
+    - step: project_brief
+      id: brief
+      phase: 1
+      agent: pm
+      hat: analyst
+      command: '*create-project-brief'
+      task: create-doc.md
+      creates: docs/brief.md
+      requires: []
+      elicit: true
+      optional_steps:
+        - '*brainstorm {tema}'
+        - '*market-research'
+        - '*research {tema}'
+      notes: |
+        Pode começar por um brainstorming e por uma pesquisa aprofundada antes do brief.
+
+    - step: create_prd
+      id: prd
+      phase: 1
+      agent: pm
+      hat: product
+      command: '*create-prd'
+      task: create-doc.md
+      creates: docs/prd.md
+      requires: [brief]
+      elicit: true
+      notes: |
+        PRD a partir do brief, com foco conforme o tipo: requisitos de API e serviço (service),
+        de interface (ui) ou de ambos (fullstack).
+
+    - step: front_end_spec
+      id: frontend_spec
+      phase: 1
+      agent: dev
+      hat: ux
+      command: '*create-front-end-spec'
+      task: create-doc.md
+      creates: docs/front-end-spec.md
+      requires: [prd]
+      condition: project_type in [fullstack, ui]
+      elicit: true
+      optional_steps:
+        - '*ux-research'
+
+    - step: ai_frontend_prompt
+      id: ai_prompt
+      phase: 1
+      agent: dev
+      hat: ux
+      command: '*ux-ai-prompt'
+      task: ux-ai-frontend-prompt.md
+      requires: [frontend_spec]
+      condition: project_type in [fullstack, ui] e o usuário quer gerar a UI com IA
+      optional: true
+      notes: |
+        Opcional e recomendado: prompt para ferramentas como v0 e Lovable. O usuário gera a UI na
+        ferramenta e traz a estrutura do projeto para a arquitetura considerar.
+
+    - step: create_architecture
+      id: architecture
+      phase: 1
+      agent: dev
+      hat: architect
+      task: create-doc.md
+      requires: [prd]
+      elicit: true
+      action: Criar a arquitetura do tipo do projeto (comando por tipo em by_project_type)
+      by_project_type:
+        fullstack:
+          command: '*create-architecture'
+          creates: docs/architecture.md
+          also_reads: [docs/front-end-spec.md]
+        service:
+          command: '*create-backend-architecture'
+          creates: docs/architecture.md
+        ui:
+          command: '*create-front-end-architecture'
+          creates: docs/ui-architecture.md
+          also_reads: [docs/front-end-spec.md]
+      optional_steps:
+        - '*research {tema}'
+      notes: |
+        Incorpora a estrutura gerada por IA, quando houver. Pode sugerir mudanças nas stories do PRD
+        ou stories novas. Decisões estruturais vão para ADR (*create-adr {título}).
+
+    - step: update_prd
+      id: prd_update
+      phase: 1
+      agent: pm
+      hat: product
+      action: Atualizar docs/prd.md com as mudanças de stories sugeridas pela arquitetura
+      requires: [architecture]
+      condition: a arquitetura sugere mudanças no PRD
+
+    - step: fix_artifacts
+      id: fix_artifacts
+      phase: 1
+      agent: pm
+      hat: owner
+      action: Delegar cada pendência do checklist ao dono do documento
+      requires: [architecture]
+      condition: o *po-checklist apontou pendências
+      notes: |
+        Pulado no primeiro passe; roda quando po_validate falha (on_failure). Brief e PRD: @pm
+        (chapéus Análise e Produto). Especificação de UI e arquitetura: @dev (chapéus UX/UI e
+        Arquitetura). Depois das correções, po_validate roda de novo.
+
+    - step: validate_artifacts
+      id: po_validate
+      phase: 1
+      agent: pm
+      hat: owner
+      command: '*po-checklist'
+      task: execute-checklist.md
+      requires: [architecture]
+      notes: |
+        Checklist mestre do Product Owner (po-master-checklist.md) sobre todos os documentos:
+        consistência e completude. Pode exigir ajuste em qualquer documento.
+      success_criteria:
+        - Checklist sem pendências
+      on_failure: { goto: fix_artifacts, reason: pendências no checklist }
+
+    # ── Fase 2: fragmentação dos documentos ────────────────────
+    - step: shard_prd
+      id: shard_prd
+      phase: 2
+      agent: pm
+      hat: product
+      command: '*shard-prd'
+      task: shard-doc.md
+      creates: docs/prd/
+      requires: [po_validate]
+
+    - step: shard_architecture
+      id: shard_architecture
+      phase: 2
+      agent: pm
+      hat: owner
+      command: '*shard-doc {arquitetura} docs/architecture'
+      task: shard-doc.md
+      creates:
+        - docs/architecture/tech-stack.md
+        - docs/architecture/source-tree.md
+        - docs/architecture/coding-standards.md
+      requires: [po_validate]
+      notes: |
+        {arquitetura} = docs/architecture.md (fullstack, service) ou docs/ui-architecture.md (ui).
+        Gera os três arquivos que o @dev sempre carrega (devLoadAlwaysFiles).
+
+    # ── Fase 3: ciclo de desenvolvimento ───────────────────────
+    - step: development_cycle
+      id: develop
+      phase: 3
+      agent: pm
+      hat: product
+      workflow: story-development-cycle.yaml
+      requires: [shard_prd, shard_architecture]
+      repeats: para cada story de cada epic
+      notes: |
+        Cada story passa pelo SDC completo: @pm *create-story {epic}, @pm *validate-story {storyId},
+        execução pelo executor declarado (@dev *develop {storyId} por padrão), @validator
+        *revisar-feature {storyId}, @pm *qa-gate {storyId}, @devops *push e @devops *create-pr {storyId},
+        @pm *close-story {storyId}.
+        Epic com muitas stories em ondas: epic-orchestration (@pm *execute-epic {epic}).
+
+  guidance:
+    project_setup: |
+      Quando o usuário gerou a UI com IA. Polyrepo: o projeto baixado vai para um repositório de
+      frontend separado (ao lado do backend, quando houver). Monorepo: em apps/web ou frontend/.
+      A arquitetura define o caso.
+    development_order: |
+      fullstack: stories mais pesadas no frontend começam pelo frontend; API primeiro ou backend mais
+      pesado começa pelo backend; funcionalidades muito acopladas seguem a ordem das stories no
+      monorepo. A ordem dos epics do PRD fragmentado manda.
+
+  completion:
+    notes: |
+      Todas as stories implementadas, inspecionadas e aprovadas no gate. Desenvolvimento concluído.
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A([Início: escolha do project_type]) --> B0{Ambiente pronto?}
+      B0 -->|não| B1["@devops: *environment-bootstrap"]
+      B0 -->|sim| C["@pm Análise: *create-project-brief"]
+      B1 --> C
+      C --> D["@pm Produto: *create-prd"]
+      D --> E{project_type}
+      E -->|fullstack ou ui| F["@dev UX/UI: *create-front-end-spec"]
+      E -->|service| H2["@dev Arquitetura: *create-backend-architecture"]
+      F --> G{Gerar a UI com IA?}
+      G -->|sim| G1["@dev UX/UI: *ux-ai-prompt"]
+      G1 --> G2[Usuário gera a UI na ferramenta]
+      G2 --> H{project_type}
+      G -->|não| H
+      H -->|fullstack| H1["@dev Arquitetura: *create-architecture"]
+      H -->|ui| H3["@dev Arquitetura: *create-front-end-architecture"]
+      H1 --> I{Arquitetura sugere mudanças no PRD?}
+      H2 --> I
+      H3 --> I
+      I -->|sim| J["@pm Produto: atualiza o PRD"]
+      I -->|não| K["@pm Product Owner: *po-checklist"]
+      J --> K
+      K --> L{Pendências?}
+      L -->|sim| M[Correção pelo dono do documento]
+      M --> K
+      L -->|não| N["@pm: *shard-prd e *shard-doc"]
+      N --> O[SDC de cada story]
+      O --> P{Mais stories?}
+      P -->|sim| O
+      P -->|não| Q([Desenvolvimento concluído])
+      C -.-> C1[Opcional: brainstorming e pesquisa]
+      F -.-> F1[Opcional: pesquisa com usuários]
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - Produto novo que vai para produção, em qualquer tipo (fullstack, service ou ui)
+      - Mais de uma pessoa no time ou manutenção longa prevista
+      - Requisitos complexos que pedem documentação completa
+      - Aplicação para clientes ou API externa
+    when_not_to_use:
+      - Evolução de sistema existente (brownfield)
+      - Avaliação de débito técnico de código existente (brownfield-discovery)
+      - CRUD simples com menos de 3 endpoints, em que o planejamento completo é excessivo
+      - Story isolada em projeto já planejado (story-development-cycle)
+
+  handoff_prompts:
+    bootstrap_to_brief: "Ambiente pronto: git, remoto e estrutura de docs. Próximo: @pm *create-project-brief"
+    brief_to_prd: "Brief pronto em docs/brief.md. Próximo: @pm *create-prd"
+    prd_to_frontend_spec: "PRD pronto em docs/prd.md. Próximo (fullstack ou ui): @dev *create-front-end-spec"
+    prd_to_architecture: "PRD pronto em docs/prd.md. Próximo (service): @dev *create-backend-architecture"
+    frontend_spec_to_architecture: "Especificação de UI pronta em docs/front-end-spec.md. Próximo: @dev *create-architecture (fullstack) ou @dev *create-front-end-architecture (ui)"
+    architecture_to_prd_update: "Arquitetura pronta. Há mudanças a sugerir nas stories do PRD ou stories novas? Se sim, atualize docs/prd.md."
+    architecture_to_po_validate: "Documentos prontos em docs/. Próximo: @pm *po-checklist"
+    po_validate_to_fix_artifacts: "O checklist apontou pendências em {documento}. Corrija com {agente} e rode de novo @pm *po-checklist"
+    po_validate_to_shard_prd: "Planejamento validado. Próximo: @pm *shard-prd e @pm *shard-doc {arquitetura} docs/architecture"
+    shard_architecture_to_develop: "Documentos fragmentados (tech-stack, source-tree, coding-standards). Próximo: @pm *create-story {epic}"
+    complete: "Todas as stories implementadas, inspecionadas e aprovadas no gate."

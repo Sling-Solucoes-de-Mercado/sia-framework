@@ -1,0 +1,307 @@
+workflow:
+  id: brownfield-discovery
+  name: Brownfield Discovery
+  version: "1.0"
+  description: >-
+    Avaliação completa de débito técnico de um projeto existente em 10 fases: coleta pelo
+    @dev nos chapéus Arquitetura, Dados e UX/UI; rascunho consolidado; revisão dos
+    especialistas; inspeção estrutural independente do @validator e revisão de qualidade do
+    @pm; avaliação final; relatório executivo; epic e stories de resolução. Indicado para
+    projetos vindos de Lovable, v0 ou bases legadas.
+  type: brownfield
+  project_types: [brownfield]
+  execution_modes: [interactive]
+  source: [development/workflows/brownfield-discovery.yaml]
+
+  phases:
+    - phase_1: Coleta do sistema
+    - phase_2: Coleta do banco
+    - phase_3: Coleta do frontend
+    - phase_4: Consolidação inicial (rascunho)
+    - phase_5: Validação de banco
+    - phase_6: Validação de UX/UI
+    - phase_7: Inspeção e revisão de qualidade
+    - phase_8: Avaliação final
+    - phase_9: Relatório executivo
+    - phase_10: Planejamento (epic e stories)
+
+  sequence:
+    # ── Fases 1 a 3: coleta (podem correr em paralelo) ─────────
+    - step: system_documentation
+      id: system
+      phase: 1
+      agent: dev
+      hat: architect
+      command: '*document-project'
+      task: document-project.md
+      creates: docs/brownfield-architecture.md
+      requires: []
+      elicit: true
+      notes: |
+        Análise: stack, estrutura de pastas e componentes, dependências e versões, padrões de código,
+        pontos de integração e configurações (env, build, deploy).
+        Débitos de sistema: dependência desatualizada, código duplicado, falta de testes, configuração
+        fixa no código, acoplamento excessivo.
+        Alternativa mais curta: @dev *analyze-codebase (mapa de estrutura, stack, padrões e riscos).
+
+    - step: database_documentation
+      id: database
+      phase: 2
+      agent: dev
+      hat: data
+      command: '*db-audit'
+      task: db-security-audit.md
+      creates:
+        - supabase/docs/SCHEMA.md
+        - supabase/docs/DB-AUDIT.md
+      requires: []
+      condition: o projeto tem banco de dados
+      elicit: true
+      notes: |
+        Análise: schema (tabelas, colunas, tipos), relacionamentos e chaves estrangeiras, índices
+        existentes e faltantes, cobertura e qualidade das policies RLS, views e functions, queries
+        lentas conhecidas.
+        Débitos de dados: tabela sem RLS, índice faltante, normalização inadequada, constraint
+        ausente, migration não versionada, dado órfão.
+        Sem banco: pule para a fase 3.
+
+    - step: frontend_documentation
+      id: frontend
+      phase: 3
+      agent: dev
+      hat: ux
+      command: '*create-front-end-spec'
+      task: create-doc.md
+      creates: docs/front-end-spec.md
+      requires: []
+      condition: o projeto tem frontend
+      elicit: true
+      notes: |
+        Análise: componentes de UI, design system e tokens, padrões de layout, fluxos de usuário,
+        responsividade, acessibilidade, consistência visual e desempenho percebido.
+        Débitos de UX/UI: inconsistência visual, componente duplicado, falta de design system,
+        problema de acessibilidade, mobile não otimizado, estados de carregamento e de erro
+        faltando, feedback ao usuário ausente.
+        Alternativa focada em padrões e tokens: @dev *ux-audit {caminho}.
+
+    # ── Fase 4: consolidação inicial ───────────────────────────
+    - step: initial_consolidation
+      id: draft
+      phase: 4
+      agent: dev
+      hat: architect
+      action: Consolidar os débitos num rascunho (prompt, sem task)
+      creates: docs/prd/technical-debt-draft.md
+      requires: [system]
+      elicit: true
+      notes: |
+        Leia docs/brownfield-architecture.md, supabase/docs/SCHEMA.md e supabase/docs/DB-AUDIT.md
+        (se existirem) e docs/front-end-spec.md, e crie o rascunho com:
+        1. Débitos de sistema
+        2. Débitos de banco (pendente: revisão do chapéu Dados)
+        3. Débitos de frontend e UX (pendente: revisão do chapéu UX/UI)
+        4. Matriz preliminar: | ID | Débito | Área | Impacto | Esforço | Prioridade |
+        5. Perguntas para os chapéus Dados e UX/UI
+        Marque com clareza as seções que dependem da revisão dos especialistas.
+
+    # ── Fases 5 a 7: validação ─────────────────────────────────
+    - step: database_specialist_review
+      id: db_review
+      phase: 5
+      agent: dev
+      hat: data
+      action: Revisar a seção de banco do rascunho (prompt, sem task)
+      creates: docs/reviews/db-specialist-review.md
+      requires: [draft]
+      condition: o projeto tem banco de dados
+      elicit: true
+      notes: |
+        Declare o chapéu Dados e revise com o rigor dele, sem atalhos, mesmo sendo o agente que
+        escreveu o rascunho. Para cada débito: confirmar, ajustar ou remover; acrescentar os que
+        faltaram; estimar horas e complexidade; priorizar por risco de segurança, desempenho e
+        manutenção; responder às perguntas do rascunho.
+        Formato: Débitos validados (| ID | Débito | Severidade | Horas | Prioridade | Notas |),
+        Débitos adicionados, Respostas, Recomendações (ordem de resolução).
+
+    - step: ux_specialist_review
+      id: ux_review
+      phase: 6
+      agent: dev
+      hat: ux
+      action: Revisar a seção de frontend e UX do rascunho (prompt, sem task)
+      creates: docs/reviews/ux-specialist-review.md
+      requires: [draft]
+      condition: o projeto tem frontend
+      elicit: true
+      notes: |
+        Declare o chapéu UX/UI. Para cada débito: confirmar se afeta a experiência, ajustar a
+        severidade e acrescentar os que faltaram; estimar horas (impacto visual ou funcional,
+        necessidade de revisão de design); priorizar por experiência, acessibilidade e consistência;
+        responder às perguntas e sugerir soluções de design.
+        Formato: Débitos validados (| ID | Débito | Severidade | Horas | Prioridade | Impacto UX |),
+        Débitos adicionados, Respostas, Recomendações de design.
+
+    - step: structural_inspection
+      id: inspection
+      phase: 7
+      agent: validator
+      command: '*revisar-todo repositório'
+      task: inspect.md
+      creates: docs/qa/inspections/AAAA-MM-DD-HHmm-revisar-todo-repositorio.md
+      requires: [draft]
+      notes: |
+        Inspeção independente, com evidência, dos pontos de entrada, das bibliotecas compartilhadas,
+        da autenticação e do acesso a dados, nas lentes de arquitetura e de código morto. Defeitos
+        preexistentes contam (escopo estrutural). Achados ausentes do rascunho viram lacunas na
+        revisão de qualidade. Autenticação ou dados sensíveis: complemente com
+        @validator *revisar-seguranca {caminho}. Na volta de um NEEDS WORK, reaproveite o relatório
+        se a revisão (HEAD) não mudou.
+
+    - step: qa_general_review
+      id: qa_review
+      phase: 7
+      agent: pm
+      hat: quality
+      action: Revisar a avaliação inteira e decidir o gate (prompt, sem task)
+      creates: docs/reviews/qa-review.md
+      requires: [draft, inspection]
+      elicit: true
+      notes: |
+        Leia o rascunho, as revisões dos especialistas e o relatório do @validator:
+        1. Lacunas: débitos não cobertos (inclusive achados do @validator fora do rascunho) e áreas não analisadas
+        2. Riscos cruzados entre áreas: segurança, regressão e integração
+        3. Dependências: a ordem de resolução faz sentido? Há bloqueios?
+        4. Testes necessários depois da resolução e critérios de aceite dos débitos
+        5. Gate: APPROVED (débitos validados, nenhuma lacuna crítica, dependências mapeadas) ou NEEDS WORK
+        Formato: Gate, Lacunas, Riscos cruzados (| Risco | Áreas | Mitigação |), Dependências
+        validadas, Testes requeridos, Parecer final.
+      success_criteria:
+        - Gate APPROVED registrado em docs/reviews/qa-review.md
+      on_failure: { goto: draft, reason: NEEDS WORK }
+
+    # ── Fases 8 e 9: relatórios ────────────────────────────────
+    - step: final_assessment
+      id: final
+      phase: 8
+      agent: dev
+      hat: architect
+      action: Consolidar a avaliação final (prompt, sem task)
+      creates: docs/prd/technical-debt-assessment.md
+      requires: [qa_review]
+      elicit: true
+      notes: |
+        Incorpore os ajustes dos chapéus Dados e UX/UI, trate as lacunas da revisão de qualidade,
+        recalcule as prioridades e defina a ordem final de resolução.
+        Estrutura: Resumo executivo (total de débitos, críticos, altos, médios e esforço total em
+        horas), Inventário por área (| ID | Débito | Severidade | Horas | Prioridade |), Matriz de
+        priorização, Plano de resolução (ordem, dependências, cronograma), Riscos e mitigações,
+        Critérios de sucesso.
+
+    - step: executive_awareness_report
+      id: report
+      phase: 9
+      agent: pm
+      hat: analyst
+      action: Escrever o relatório executivo (prompt, sem task)
+      creates: docs/reports/technical-debt-report.md
+      requires: [final]
+      elicit: true
+      notes: |
+        Para stakeholders: custo e impacto em linguagem de negócio, não técnica. Valores em R$, com
+        R$ 150 por hora como base.
+        Estrutura: Resumo executivo (situação, números-chave, recomendação), Custo de resolver por área
+        e custo de não resolver (risco acumulado), Impacto no negócio (desempenho, segurança,
+        experiência, manutenibilidade), Cronograma (ganhos rápidos em 1 a 2 semanas, fundação em 2 a 4,
+        otimização em 4 a 6), ROI da resolução, Próximos passos e Anexos.
+
+    # ── Fase 10: planejamento ──────────────────────────────────
+    - step: epic_creation
+      id: epic
+      phase: 10
+      agent: pm
+      hat: product
+      command: '*create-epic'
+      task: create-epic.md
+      creates: docs/prd/epic-{n}-{slug}.md
+      requires: [final, report]
+      elicit: true
+      notes: |
+        Epic "Resolução de débitos técnicos: {projeto}" com objetivo, escopo (quais débitos),
+        critérios de sucesso, cronograma do relatório, orçamento aprovado e lista de stories.
+
+    - step: story_creation
+      id: stories
+      phase: 10
+      agent: pm
+      hat: scrum
+      command: '*create-brownfield-story'
+      task: create-brownfield-story.md
+      creates: docs/stories/{storyId}-{slug}.story.md
+      requires: [epic]
+      repeats: para cada débito ou grupo de débitos priorizado
+      elicit: true
+      notes: |
+        Story com tasks claras, critérios de aceite específicos, testes requeridos (da revisão de
+        qualidade), estimativa validada pelos especialistas e Definição de Pronto.
+        Com PRD fragmentado: @pm *create-story {epic}.
+
+  time_estimate:
+    minimum: 4 horas
+    typical: 5 a 6 horas
+    complex_project: 8 horas
+
+  completion:
+    notes: |
+      Discovery concluído. Próximos passos:
+      1. Apresentar docs/reports/technical-debt-report.md aos stakeholders
+      2. Obter a aprovação do orçamento
+      3. Começar o SDC da primeira story: @pm *validate-story {storyId}
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A([Início]) --> B["Fase 1 - @dev Arquitetura: *document-project"]
+      B --> C{Tem banco?}
+      C -->|sim| D["Fase 2 - @dev Dados: *db-audit"]
+      C -->|não| E{Tem frontend?}
+      D --> E
+      E -->|sim| F["Fase 3 - @dev UX/UI: *create-front-end-spec"]
+      E -->|não| G
+      F --> G["Fase 4 - @dev Arquitetura: rascunho de débitos"]
+      G --> H["Fase 5 - @dev Dados: revisão de banco"]
+      G --> I["Fase 6 - @dev UX/UI: revisão de UX"]
+      G --> V["Fase 7 - @validator: *revisar-todo repositório"]
+      H --> Q["Fase 7 - @pm Qualidade: revisão geral"]
+      I --> Q
+      V --> Q
+      Q --> R{Gate}
+      R -->|NEEDS WORK| G
+      R -->|APPROVED| S["Fase 8 - @dev Arquitetura: avaliação final"]
+      S --> T["Fase 9 - @pm Análise: relatório executivo"]
+      T --> U["Fase 10 - @pm Produto: *create-epic"]
+      U --> W["Fase 10 - @pm Scrum: *create-brownfield-story"]
+      W --> X([Discovery concluído])
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - Migração de projeto feito em Lovable, v0 ou base legada
+      - Auditoria completa de código
+      - Planejamento de modernização
+      - Avaliação antes de investimento ou due diligence técnica
+      - Entrada em projeto legado
+    when_not_to_use:
+      - Produto novo do zero (greenfield)
+      - Evolução pequena em projeto existente (brownfield)
+      - Correção pontual ou bug (story direta com @pm *create-brownfield-story)
+      - Projeto com documentação completa (vá direto ao brownfield)
+
+  handoff_prompts:
+    frontend_to_draft: "Fases 1 a 3 concluídas: docs/brownfield-architecture.md, supabase/docs/SCHEMA.md e docs/front-end-spec.md. Próximo: @dev [Arquitetura] consolida o rascunho (fase 4)."
+    draft_to_db_review: "Rascunho em docs/prd/technical-debt-draft.md. Próximo: revisões do @dev [Dados] e [UX/UI] (fases 5 e 6) e @validator *revisar-todo repositório (fase 7)."
+    inspection_to_qa_review: "Revisões e relatório de inspeção prontos. Próximo: revisão geral do @pm [Qualidade] (fase 7)."
+    qa_review_to_draft: "Revisão de qualidade NEEDS WORK: {lacunas}. Volte à fase 4 e refaça o rascunho."
+    qa_review_to_final: "Revisão de qualidade APPROVED. Próximo: avaliação final do @dev [Arquitetura] (fase 8)."
+    final_to_report: "Avaliação final em docs/prd/technical-debt-assessment.md. Próximo: relatório executivo do @pm [Análise] (fase 9)."
+    report_to_epic: "Relatório executivo em docs/reports/technical-debt-report.md. Próximo: @pm *create-epic"
+    complete: "Discovery concluído. Para stakeholders: docs/reports/technical-debt-report.md. Para desenvolvimento: epic e stories em Draft. Próximo: @pm *validate-story {storyId}"

@@ -161,6 +161,8 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | Artefatos de UX (pesquisa, wireframes, auditorias) | `docs/ux/` |
 | Especificação de front-end | `docs/front-end-spec.md` |
 | Arquitetura de front-end | `docs/front-end-architecture.md` |
+| Revisões de especialistas e relatórios (brownfield discovery) | `docs/reviews/`, `docs/reports/` |
+| RUN-LOG de pipelines longos | `docs/prd/epic-{n}-run-log.md` ou `docs/runlogs/{pipeline}-run-log.md` |
 | Gotchas | `docs/gotchas.md` |
 | Squads | `squads/{nome}/` |
 | Runtime (não versionado) | `.sia/` (handoffs, `sdc/`, `qa-loop/`, `workflows/`, agente ativo) |
@@ -200,6 +202,7 @@ Regras:
 - O `@devops` não muda status de story, exceto como executor declarado de story de infraestrutura.
 - Inspeção `reprovado` antes do gate: o `@dev` corrige com `*apply-qa-fixes` mantendo a story em `InReview`, registra uma linha no Change Log e pede nova inspeção. Gate `FAIL`: a story volta para `InProgress` e o `@dev` a devolve para `InReview` depois das correções.
 - Story de pesquisa (entregável documental) não passa por inspeção: vai direto ao `*qa-gate`.
+- Depois de um gate `FAIL`, quem corrige é o executor declarado: o `@dev` com `*apply-qa-fixes`; o `@devops` e o `@pm` [Análise] reexecutando o próprio comando de execução sobre o pedido de correção.
 - Story em `Draft` depois de um GO é violação de processo.
 
 ### 6.1 Seções canônicas do arquivo de story
@@ -261,7 +264,7 @@ Quem edita cada seção:
 | Status | conforme a tabela de transições |
 | Tasks / Subtasks (checkboxes), Dev Notes, Testes, Registro do Dev | executor declarado (`@dev`, `@devops` ou `@pm` [Análise]) |
 | Resultado do QA | `@pm` [Qualidade] |
-| Change Log | qualquer agente, só acrescentando linhas |
+| Change Log | qualquer agente que muda status ou entrega, só acrescentando linhas (o `@validator` não edita a story) |
 
 ### 6.2 Formatos verificados pela CLI
 
@@ -327,6 +330,8 @@ revision: '3f2a9c1'
 findings: { bloqueante: 0, alto: 0, medio: 1, baixo: 2, nota: 0 }
 ---
 ```
+
+`findings` conta todos os achados, inclusive os preexistentes. Quem decide é o `verdict`: a CLI e o `*qa-gate` leem o veredito, não as contagens.
 
 **Handoff** (`.sia/handoffs/handoff-{de}-para-{para}-{AAAAMMDD-HHmmss}.yaml`): campos do template `agent-handoff-tmpl.yaml`, incluindo `last_command` e `consumed` (false ao gravar; true quando o agente seguinte exibe a sugestão).
 
@@ -530,7 +535,7 @@ Campos de seção aceitos: `id`, `title`, `instruction`, `type` (`paragraphs`, `
 
 ### 9.2 Template de arquivo
 
-Markdown, SQL, YAML de CI etc. Comece com um comentário curto no formato do arquivo explicando o uso e os placeholders `{{variavel}}`.
+Markdown, SQL, YAML de CI etc. Comece com um comentário curto no formato do arquivo explicando o uso e os placeholders `{{variavel}}`. Exceção: templates de documento que começam com frontmatter YAML (ex.: `inspection-report-tmpl.md`) trazem o frontmatter primeiro e o comentário logo depois.
 
 ---
 
@@ -610,6 +615,10 @@ workflow:
 ```
 
 Todo `task:` de workflow precisa existir em `.sia-core/tasks/`. Todo `agent:` precisa ser um dos 5 agentes.
+
+Chaves de passo aceitas além do exemplo: `command` (comando do agente, ex.: `*develop {storyId}`), `action`, `condition` (o passo só roda quando a condição vale), `optional`, `elicit`, `repeats`, `on_verdict` (rota por veredito), `on_failure` (`goto` + `reason`), `complete`. Variantes de workflow usam `variables`, `by_project_type`, `by_executor` e `routes`; orientações gerais vão em `guidance` e o encerramento em `completion`.
+
+**Convenção de laços:** o `run-workflow` só volta atrás por `on_failure.goto`. Por isso, o passo de correção fica **antes** da etapa que o aciona, com `condition`, e o primeiro passe o pula.
 
 ---
 

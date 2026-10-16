@@ -1,0 +1,223 @@
+workflow:
+  id: spec-pipeline
+  name: Spec Pipeline
+  version: "1.0"
+  description: >-
+    Transforma requisitos informais em uma spec executável antes da implementação:
+    levantar requisitos, avaliar complexidade, pesquisar dependências, escrever a spec,
+    criticá-la e planejar a implementação. As fases executadas dependem da classe de
+    complexidade (SIMPLE, STANDARD ou COMPLEX). Depois, a story segue no SDC.
+  type: generic
+  project_types: [greenfield, brownfield]
+  execution_modes: [yolo, interactive]
+  source: [development/workflows/spec-pipeline.yaml]
+
+  config:
+    output_dir: docs/stories/{storyId}/spec/
+    strict_gate: true            # BLOCKED interrompe o pipeline
+    max_revisions: 2             # NEEDS_REVISION nas classes SIMPLE e STANDARD volta para a spec no máximo 2 vezes
+
+  complexity:
+    dimensions: [scope, integration, infrastructure, knowledge, risk]   # nota de 1 a 5 em cada
+    classes:
+      SIMPLE:   { score: '<= 8',  steps: [gather, spec, critique] }
+      STANDARD: { score: '9-15',  steps: [gather, assess, research, spec, critique, plan] }
+      COMPLEX:  { score: '>= 16', steps: [gather, assess, research, spec, critique, revise, critique_2, plan] }
+
+  pre_conditions:
+    - storyId informado; a pasta docs/stories/{storyId}/spec/ é criada se não existir
+    - Spec já existente em spec.md não bloqueia; a execução itera sobre ela (aviso)
+
+  sequence:
+    - step: gather_requirements
+      id: gather
+      phase: 1
+      agent: pm
+      hat: product
+      command: '*gather-requirements {storyId}'
+      task: gather-requirements.md
+      creates: docs/stories/{storyId}/spec/requirements.json
+      requires: []
+      elicit: true
+      notes: |
+        Levanta e estrutura os requisitos a partir do usuário, do PRD ou de spec existente:
+        funcionais (FR-*), não funcionais (NFR-*) e restrições (CON-*). Falha: o pipeline para.
+      success_criteria:
+        - requirements.json com FR, NFR e CON
+
+    - step: assess_complexity
+      id: assess
+      phase: 2
+      agent: dev
+      hat: architect
+      command: '*assess-complexity {storyId}'
+      task: assess-complexity.md
+      creates: docs/stories/{storyId}/spec/complexity.json
+      requires: [gather]
+      condition: origem não declarada simples e classe não forçada como SIMPLE
+      notes: |
+        Pontua as 5 dimensões (escopo, integração, infraestrutura, conhecimento e risco) e define a
+        classe, que decide as fases seguintes. Falha: assume STANDARD e segue.
+
+    - step: research_dependencies
+      id: research
+      phase: 3
+      agent: pm
+      hat: analyst
+      command: '*research-deps {storyId}'
+      task: research-dependencies.md
+      creates: docs/stories/{storyId}/spec/research.json
+      requires: [gather]
+      condition: classe STANDARD ou COMPLEX
+      notes: |
+        Pesquisa dependências externas (documentação de bibliotecas e busca na web), valida
+        tecnologias e registra afirmações não verificadas. Falha: segue com pesquisa mínima.
+
+    - step: write_spec
+      id: spec
+      phase: 4
+      agent: pm
+      hat: product
+      command: '*write-spec {storyId}'
+      task: write-spec.md
+      creates: docs/stories/{storyId}/spec/spec.md
+      requires: [gather]
+      notes: |
+        Gera a spec a partir dos artefatos anteriores, sem invenção (Artigo IV): toda afirmação
+        rastreia para FR-*, NFR-*, CON-* ou achado de pesquisa. Na volta de um NEEDS_REVISION,
+        aplica o critique.json. Falha: o pipeline para.
+      success_criteria:
+        - spec.md com cada afirmação rastreável
+
+    - step: critique_spec
+      id: critique
+      phase: 5
+      agent: pm
+      hat: quality
+      command: '*critique-spec {storyId}'
+      task: critique-spec.md
+      creates: docs/stories/{storyId}/spec/critique.json
+      requires: [spec]
+      gate: true
+      notes: |
+        Gate bloqueante. Avalia precisão, completude, consistência, viabilidade e alinhamento.
+        O chapéu Qualidade aplica o checklist completo, mesmo com a spec escrita pelo próprio @pm.
+        Média >= 4.0: APPROVED. De 3.0 a 3.9: NEEDS_REVISION. Abaixo de 3.0: BLOCKED.
+        Classe COMPLEX: segue para a revisão (revise) e a segunda crítica.
+      on_verdict:
+        APPROVED: { next: plan }
+        NEEDS_REVISION: { next: spec, max: 2, note: 'classes SIMPLE e STANDARD; na COMPLEX, segue para revise' }
+        BLOCKED: { action: halt, escalate_to: '@dev [Arquitetura]' }
+      success_criteria:
+        - Veredito APPROVED, ou classe COMPLEX seguindo para a revisão
+      on_failure: { goto: spec, reason: NEEDS_REVISION (até 2 vezes; BLOCKED para o pipeline) }
+
+    - step: revise_spec
+      id: revise
+      phase: 5b
+      agent: pm
+      hat: product
+      command: '*write-spec {storyId}'
+      task: write-spec.md
+      requires: [critique]
+      condition: classe COMPLEX
+      notes: |
+        Aplica o critique.json e as correções sugeridas à spec.
+
+    - step: second_critique
+      id: critique_2
+      phase: 5c
+      agent: pm
+      hat: quality
+      command: '*critique-spec {storyId}'
+      task: critique-spec.md
+      requires: [revise]
+      condition: classe COMPLEX
+      gate: true
+      notes: |
+        Segunda crítica da spec revisada; tolera mais os itens médios quando há melhora visível.
+        NEEDS_REVISION aqui para o pipeline para intervenção manual; BLOCKED escala para o
+        @dev [Arquitetura].
+      on_verdict:
+        APPROVED: { next: plan }
+        NEEDS_REVISION: { action: halt, reason: intervenção manual }
+        BLOCKED: { action: halt, escalate_to: '@dev [Arquitetura]' }
+
+    - step: create_plan
+      id: plan
+      phase: 6
+      agent: dev
+      hat: architect
+      command: '*create-plan {storyId}'
+      task: create-plan.md
+      creates: docs/stories/{storyId}/spec/implementation.yaml
+      requires: [critique]
+      condition: última crítica APPROVED nas classes STANDARD ou COMPLEX
+      notes: |
+        Quebra a spec aprovada em subtasks, identifica dependências e estima esforço.
+
+  halt:
+    BLOCKED: o pipeline para e escala para o @dev [Arquitetura], com os itens de severidade alta do critique.json
+    NEEDS_REVISION_esgotado: intervenção manual depois das revisões permitidas
+    fase_com_falha: corrija a causa e retome pela fase que falhou
+
+  resume:
+    rule: retome pela primeira fase cujo artefato ainda não existe em docs/stories/{storyId}/spec/
+    from:
+      requirements.json: assess
+      complexity.json: research
+      research.json: spec
+      spec.md: critique
+      critique.json: plan
+
+  completion:
+    notes: |
+      Pipeline concluído. Revise spec.md e siga no SDC: @pm *validate-story {storyId} se a story
+      estiver em Draft, ou @dev *develop {storyId} se já estiver em Ready.
+
+  flow_diagram: |
+    ```mermaid
+    flowchart TD
+      A([Requisito informal]) --> B["@pm Produto: *gather-requirements"]
+      B --> C{Origem declarada simples?}
+      C -->|sim: SIMPLE| E["@pm Produto: *write-spec"]
+      C -->|não| D["@dev Arquitetura: *assess-complexity"]
+      D --> D1{Classe}
+      D1 -->|SIMPLE| E
+      D1 -->|STANDARD ou COMPLEX| R["@pm Análise: *research-deps"]
+      R --> E
+      E --> F["@pm Qualidade: *critique-spec"]
+      F --> G{Veredito}
+      G -->|NEEDS_REVISION, até 2 vezes| E
+      G -->|BLOCKED| X([Para e escala para o @dev Arquitetura])
+      G -->|classe COMPLEX| V["@pm Produto: revisa a spec"]
+      V --> F2["@pm Qualidade: segunda crítica"]
+      F2 -->|APPROVED| P
+      F2 -->|NEEDS_REVISION ou BLOCKED| X2([Para para intervenção])
+      G -->|APPROVED, classe SIMPLE| S([Segue no SDC])
+      G -->|APPROVED, classe STANDARD| P["@dev Arquitetura: *create-plan"]
+      P --> S
+    ```
+
+  decision_guidance:
+    when_to_use:
+      - Feature complexa ou requisito ainda informal, antes de implementar
+      - Mudança com integração externa, infraestrutura nova ou risco alto
+      - Quando cada afirmação da spec precisa rastrear para requisito ou pesquisa (Artigo IV)
+    when_not_to_use:
+      - Story simples com critérios de aceite claros (vá direto ao SDC)
+      - Bug com causa conhecida
+      - Ajuste de texto ou de configuração sem mudança de comportamento
+
+  handoff_prompts:
+    gather_to_assess: "Requisitos levantados: {fr} FR, {nfr} NFR, {con} CON. Próximo: @dev *assess-complexity {storyId}"
+    gather_to_spec: "Origem declarada simples (classe SIMPLE). Próximo: @pm *write-spec {storyId}"
+    assess_to_research: "Complexidade {classe} (pontuação {pontos}). Próximo: @pm *research-deps {storyId}"
+    assess_to_spec: "Classe SIMPLE: pesquisa dispensada. Próximo: @pm *write-spec {storyId}"
+    research_to_spec: "Pesquisa concluída: {dependencias} dependências, {pendentes} afirmações não verificadas. Próximo: @pm *write-spec {storyId}"
+    spec_to_critique: "Spec escrita em docs/stories/{storyId}/spec/spec.md. Próximo: @pm *critique-spec {storyId}"
+    critique_to_spec: "Spec NEEDS_REVISION: {motivo}. Próximo: @pm *write-spec {storyId} com o critique.json"
+    critique_to_revise: "Classe COMPLEX: revisão da spec com o critique.json. Próximo: @pm *write-spec {storyId}"
+    critique_to_plan: "Spec APPROVED (média {media}/5). Próximo: @dev *create-plan {storyId}"
+    critique_blocked: "Spec BLOCKED: {motivo}. O pipeline parou; o @dev [Arquitetura] avalia os itens de severidade alta."
+    plan_to_sdc: "Plano em docs/stories/{storyId}/spec/implementation.yaml. Próximo: @pm *validate-story {storyId} (story em Draft) ou @dev *develop {storyId} (story em Ready)"
