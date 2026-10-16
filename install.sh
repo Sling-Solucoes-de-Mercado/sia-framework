@@ -54,7 +54,8 @@ case ":$PATH:" in
 esac
 
 if [ "${SIA_SKIP_PROJECT:-}" != "1" ]; then
-  if [ -r /dev/tty ]; then
+  # Só usa o terminal para as perguntas quando ele realmente abre (em CI ou script, instala com padrões).
+  if (: </dev/tty) 2>/dev/null; then
     "$INSTALL_DIR/sia" install "$@" </dev/tty
   else
     "$INSTALL_DIR/sia" install --yes "$@"
