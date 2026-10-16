@@ -160,3 +160,15 @@ test('CLI story status: executor declarado e inspeção reprovada', (t) => {
   const human = runCli(['story', 'status', '1.1'], { cwd: root });
   assert.match(human.stdout, /Executor\s+@dev \[dev\]/);
 });
+
+test('sync --target fora de um projeto SIA usa o .sia-core da própria CLI', (t) => {
+  const empty = tempDir('sia-empty-');
+  t.after(() => cleanup(empty));
+  const result = runCli(['sync', '--target', '.', '--link-core'], { cwd: empty });
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+  assert.ok(fs.lstatSync(path.join(empty, '.sia-core')).isSymbolicLink());
+  assert.ok(fs.existsSync(path.join(empty, '.claude/skills/sia-pm/SKILL.md')));
+  // Sem --target não há fallback: comandos de projeto continuam exigindo a raiz.
+  const status = runCli(['story', 'status', '1.1'], { cwd: tempDir('sia-empty2-') });
+  assert.equal(status.code, 2);
+});

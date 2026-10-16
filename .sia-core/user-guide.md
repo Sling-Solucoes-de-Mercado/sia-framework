@@ -43,8 +43,8 @@ Veste 5 chapéus:
 
 | Chapéu | Para quê | Comandos principais |
 |--------|----------|---------------------|
-| Produto | PRD, epics, specs, rumo do projeto | `*create-prd`, `*create-brownfield-prd`, `*create-epic`, `*execute-epic`, `*correct-course`, `*run-workflow` |
-| Análise | Pesquisa, brief, brainstorming | `*create-project-brief`, `*market-research`, `*competitor-analysis`, `*brainstorm`, `*research` |
+| Produto | PRD, epics, specs, rumo do projeto | `*create-prd`, `*create-brownfield-prd`, `*create-epic`, `*execute-epic`, `*pm-checklist`, `*correct-course`, `*run-workflow` |
+| Análise | Pesquisa, brief, brainstorming, stories de pesquisa | `*create-project-brief`, `*market-research`, `*competitor-analysis`, `*brainstorm`, `*research`, `*execute-research-story` |
 | Scrum | Escrever stories prontas para o `@dev` | `*create-story`, `*create-brownfield-story` |
 | Product Owner | Validar stories e cuidar do backlog | `*validate-story`, `*backlog`, `*status`, `*close-story` |
 | Qualidade | Decidir se a entrega está pronta | `*qa-gate`, `*qa-loop`, `*nfr-assess`, `*risk-profile`, `*test-design`, `*trace` |
@@ -54,13 +54,13 @@ Veste 5 chapéus:
 | Chapéu | Para quê | Comandos principais |
 |--------|----------|---------------------|
 | Desenvolvimento | Implementar e corrigir | `*develop {storyId}`, `*apply-qa-fixes`, `*run-tests`, `*generate-tests` |
-| Arquitetura | Desenho do sistema e decisões | `*create-architecture`, `*create-adr`, `*analyze-impact`, `*assess-complexity`, `*create-plan` |
+| Arquitetura | Desenho do sistema e decisões | `*create-architecture`, `*create-adr`, `*analyze-impact`, `*assess-complexity`, `*create-plan`, `*brownfield-checklist` |
 | Dados | Supabase/Postgres | `*db-setup`, `*db-model`, `*db-migrate`, `*db-rollback`, `*db-audit`, `*db-policy` |
 | UX/UI | Interface e design system | `*create-front-end-spec`, `*ux-wireframe`, `*ux-design-system`, `*ux-build-component` |
 
 ### 🚀 @devops (Lance): entrega e infraestrutura
 
-`*pre-push`, `*push`, `*create-pr`, `*release`, `*configure-ci`, `*environment-bootstrap`, `*setup-mcp {supabase|vercel}`, `*vercel-setup`, `*vercel-deploy {preview|production}`, `*health-check`.
+`*pre-push`, `*push`, `*create-pr`, `*merge-pr`, `*release`, `*configure-ci`, `*develop {storyId}` (stories de infraestrutura), `*environment-bootstrap`, `*setup-mcp {supabase|vercel}`, `*vercel-setup`, `*vercel-deploy {preview|production}`, `*health-check`.
 
 ### 🔍 @validator (Vera): inspeção
 
@@ -240,6 +240,7 @@ ou, direto pela CLI:
 ```bash
 sia mcp setup supabase --ide claude-code,codex,gemini,grok
 sia mcp status
+sia mcp remove vercel --ide grok   # remove de uma IDE
 ```
 
 O facilitador:
@@ -280,7 +281,7 @@ Se `sia` não estiver no PATH, use `node .sia-core/cli/sia.js {comando}`.
 | `sia sync [--check]` | Gera ou confere as integrações das IDEs |
 | `sia story status {id}` | Situação da story e próximo comando |
 | `sia sdc plan\|next\|verify\|status {id}` | Acompanha o ciclo completo da story |
-| `sia mcp setup {supabase\|vercel}` / `sia mcp status` | Conexão de MCPs |
+| `sia mcp setup {supabase\|vercel}` / `sia mcp status` / `sia mcp remove` | Conexão de MCPs |
 | `sia squad list` | Squads locais |
 | `sia agent use {id}` / `current` / `clear` | Agente ativo, quando a IDE não registra sozinha |
 

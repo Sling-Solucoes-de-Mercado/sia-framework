@@ -109,7 +109,7 @@ Gera as projeções das IDEs a partir do `.sia-core`. Toda projeção aponta par
 | `--ide lista` | IDEs separadas por vírgula (`claude-code`, `codex`, `gemini`, `grok`; aceita `claude`, `chatgpt`, `openai`, `gemini-cli`). Padrão: `ide.targets` do core-config. |
 | `--check` | Gera em memória e compara com o disco; reporta `ausente` (missing), `divergente` (drift), `órfão` (stale), `conflito` e `erro`. Sai com `1` se houver qualquer diferença. |
 | `--dry-run` | Mostra o que seria criado, atualizado ou removido, sem gravar. |
-| `--target dir` | Grava as projeções em outro diretório (sandbox). |
+| `--target dir` | Grava as projeções em outro diretório (sandbox). Rodado de uma pasta sem `.sia-core`, usa como fonte o projeto que contém a própria CLI. |
 | `--link-core` | Com `--target`, cria `dir/.sia-core → {raiz}/.sia-core` se não existir. Conveniência de desenvolvimento, não é instalador. |
 
 ### Arquivos gerenciados

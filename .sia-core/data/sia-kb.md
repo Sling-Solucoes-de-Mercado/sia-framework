@@ -19,7 +19,7 @@
 |----|------|---------|----------------|
 | `pm` | Mira | product, analyst, scrum, owner, quality | criar e validar stories; veredito do QA gate; backlog; orquestrar workflows e epics |
 | `dev` | Davi | dev, architect, data, ux | código; Ready → InProgress → InReview; ADR; schema, migrations e RLS; interface |
-| `devops` | Lance | (único) | push, PR, merge, release, tag, deploy de produção, MCP, CI/CD |
+| `devops` | Lance | (único) | push, PR, merge (`*merge-pr`), release, tag, deploy de produção, MCP, CI/CD; executor de stories de infraestrutura |
 | `validator` | Vera | (único) | inspeção técnica; relatórios em `docs/qa/inspections/` |
 | `squad-creator` | Elo | (único) | agentes, tasks, workflows, checklists e templates do framework; squads; `sia sync` |
 
@@ -122,7 +122,7 @@ Se `sia` não estiver no PATH, use `node .sia-core/cli/sia.js`.
 | `sync [--ide ...] [--check] [--target dir] [--link-core]` | gera ou confere projeções |
 | `story status {id}` | situação e próximo comando |
 | `sdc plan\|next\|verify\|mark\|status` | ciclo da story com estado em `.sia/sdc/{id}/state.json`; fases validate → develop → inspect → review → apply_qa_fixes → close |
-| `mcp setup {supabase\|vercel}` / `mcp status` | facilitador de MCP; lê `data/mcp-servers.yaml` |
+| `mcp setup\|status\|remove {supabase\|vercel}` | facilitador de MCP; lê `data/mcp-servers.yaml` |
 | `squad list` | squads locais |
 | `agent use\|current\|clear` | agente ativo |
 

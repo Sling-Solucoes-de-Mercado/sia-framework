@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+const path = require('path');
+
 /**
  * CLI do SIA (Sling Inteligência Artificial).
  * Uso: sia {comando} [opções]  (ou node .sia-core/cli/sia.js {comando})
@@ -164,7 +166,9 @@ function main(argv = process.argv.slice(2), io = {}) {
       },
     };
     if (command.needsRoot) {
-      ctx.root = resolveRoot({ root: parsed.values.root, cwd });
+      // `sync --target` pode rodar de fora de um projeto SIA: a fonte é o .sia-core da própria CLI.
+      const fallbackRoot = name === 'sync' && parsed.values.target ? path.resolve(__dirname, '..', '..') : null;
+      ctx.root = resolveRoot({ root: parsed.values.root, cwd, fallbackRoot });
       const loaded = loadConfig(ctx.root.configPath);
       if (loaded.error) throw new SiaError(`core-config.yaml inválido: ${loaded.error}`, { code: 'CONFIG_INVALID' });
       ctx.config = loaded.config;

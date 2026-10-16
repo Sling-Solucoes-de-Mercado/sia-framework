@@ -50,8 +50,8 @@ function describeRoot(root) {
 }
 
 /**
- * Resolve a raiz a partir de --root ou do cwd.
- * @param {{ root?: string, cwd?: string }} [options]
+ * Resolve a raiz a partir de --root, do cwd ou, se informado, de options.fallbackRoot.
+ * @param {{ root?: string, cwd?: string, fallbackRoot?: string|null }} [options]
  * @throws {UsageError} quando a raiz não é encontrada.
  */
 function resolveRoot(options = {}) {
@@ -66,7 +66,12 @@ function resolveRoot(options = {}) {
     return describeRoot(candidate);
   }
   const start = options.cwd || process.cwd();
-  const root = findRoot(start);
+  let root = findRoot(start);
+  // Fallback (ex.: `sia sync --target` rodado de uma pasta sem .sia-core): usa o projeto
+  // que contém a própria CLI em execução.
+  if (!root && options.fallbackRoot && exists(path.join(options.fallbackRoot, CORE_DIR, CONFIG_FILE))) {
+    root = path.resolve(options.fallbackRoot);
+  }
   if (!root) {
     throw new UsageError(
       `Raiz do projeto SIA não encontrada: nenhum ${CORE_DIR}/${CONFIG_FILE} a partir de ${start}. ` +
