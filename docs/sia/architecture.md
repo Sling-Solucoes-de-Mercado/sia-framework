@@ -106,9 +106,11 @@ No SIA, o hook `track-active-agent` lê o prompt do usuário e registra o agente
 
 Onde a IDE não suporta hooks de prompt, existe o fallback `sia agent use {id}`.
 
-### D9. Sem instalador nesta fase
+### D9. Instalação
 
-O instalador vem depois da validação. Para validar sem instalador, `sia sync --target {pasta} --link-core` gera as projeções num projeto de teste e cria um link para o `.sia-core` deste repositório.
+O executável `sia` (Node single executable) embute o `.sia-core` e o runtime do Node: instala sem exigir Node e depois repassa os comandos da CLI para o projeto (`sia doctor`, `sia sync`...). Ele é gerado pelo workflow `Release` para macOS, Linux e Windows. Também há instaladores de uma linha (`install.sh`, `install.ps1`), que baixam o executável, e `npx github:Sling-Solucoes-de-Mercado/sia-framework`. Código em `installer/sia-install.js` e `scripts/build-sea.js`.
+
+A atualização (`sia update`) preserva `core-config.yaml`, `agents/*/MEMORY.md` e `data/technical-preferences.md`, e guarda uma cópia da versão anterior em `.sia/backups/`.
 
 ---
 
@@ -169,5 +171,5 @@ A origem de cada artefato está em `docs/sia/porting-map.yaml`, inclusive o que 
 
 1. Validar o framework num projeto-sandbox nas 4 IDEs (`sia sync --target`).
 2. Ajustar tasks e agentes com base no uso real.
-3. Construir o instalador: copiar `.sia-core/`, rodar `sia sync` para as IDEs escolhidas e mesclar arquivos existentes.
+3. Assinar os executáveis (Apple notarization e Authenticode) para eliminar os avisos do macOS e do Windows.
 4. Remover o AIOX de referência deste repositório.

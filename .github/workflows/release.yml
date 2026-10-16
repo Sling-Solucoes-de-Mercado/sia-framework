@@ -1,0 +1,84 @@
+name: Release
+
+# Gera o executável `sia` para cada sistema e publica na Release da tag (ex.: v1.0.0).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag a publicar (ex.: v1.0.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Executável ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, name: sia-linux-x64 }
+          - { runner: ubuntu-24.04-arm, name: sia-linux-arm64 }
+          - { runner: macos-latest, name: sia-macos-arm64 }
+          - { runner: macos-15-intel, name: sia-macos-x64 }
+          - { runner: windows-latest, name: sia-windows-x64 }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - name: Testes
+        run: node --test installer/tests/install.test.js
+      - name: Gerar executável
+        run: node scripts/build-sea.js --name ${{ matrix.name }}
+      - name: Testar executável
+        shell: bash
+        run: |
+          exe="dist/${{ matrix.name }}"; [ -f "$exe.exe" ] && exe="$exe.exe"
+          "$exe" --version
+          "$exe" install "$RUNNER_TEMP/projeto-teste" --yes --name teste --type greenfield --ide claude-code
+          test -f "$RUNNER_TEMP/projeto-teste/.claude/skills/sia-pm/SKILL.md"
+      - name: Empacotar (macOS e Linux)
+        if: runner.os != 'Windows'
+        run: tar -czf "dist/${{ matrix.name }}.tar.gz" -C dist "${{ matrix.name }}"
+      - name: Empacotar (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "dist/${{ matrix.name }}.exe" -DestinationPath "dist/${{ matrix.name }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            dist/${{ matrix.name }}.tar.gz
+            dist/${{ matrix.name }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Publicar Release
+    needs: build
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        working-directory: artifacts
+        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" artifacts/* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" --title "SIA $TAG" --generate-notes
+          fi

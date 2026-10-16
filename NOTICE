@@ -1,0 +1,10 @@
+SIA (Sling Inteligência Artificial)
+Copyright (c) 2026 Sling Soluções de Mercado
+
+Este projeto é derivado do Synkra AIOX (https://github.com/SynkraAI/aiox-core),
+distribuído sob a licença MIT. Agentes, tasks, templates, checklists e workflows
+foram adaptados, condensados e traduzidos a partir dele; a rastreabilidade de
+cada artefato está em docs/sia/porting-map.yaml.
+
+Inclui o js-yaml 4.3.2 (MIT), em .sia-core/cli/vendor/ (licença em
+.sia-core/cli/vendor/js-yaml.LICENSE).

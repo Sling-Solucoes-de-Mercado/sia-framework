@@ -1,0 +1,33 @@
+{
+  "name": "sia-framework",
+  "version": "1.0.0",
+  "description": "SIA (Sling Inteligência Artificial): framework de desenvolvimento orientado por agentes de IA para Claude Code, Codex, Gemini CLI e Grok",
+  "license": "MIT",
+  "author": "Sling Soluções de Mercado",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sling-Solucoes-de-Mercado/sia-framework.git"
+  },
+  "homepage": "https://github.com/Sling-Solucoes-de-Mercado/sia-framework#readme",
+  "bin": {
+    "sia": "installer/sia-install.js"
+  },
+  "files": [
+    "installer/sia-install.js",
+    ".sia-core/",
+    "!.sia-core/cli/tests/",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test installer/tests/install.test.js && cd .sia-core && node --test cli/tests/index.js",
+    "validate": "node .sia-core/cli/sia.js validate",
+    "build:bundle": "node scripts/build-bundle.js",
+    "build:sea": "node scripts/build-sea.js"
+  },
+  "keywords": ["ai", "agents", "claude-code", "codex", "gemini", "grok", "framework", "sling"]
+}

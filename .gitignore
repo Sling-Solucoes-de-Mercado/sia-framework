@@ -54,3 +54,6 @@ sandbox/
 
 # .env.example herdado do AIOX (o modelo do SIA fica em .sia-core/templates/env.example)
 .env.example
+
+# Build do executável
+dist/

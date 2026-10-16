@@ -1,10 +1,66 @@
 # SIA: Sling Inteligência Artificial
 
-Framework de desenvolvimento orientado por agentes de IA da Sling. O trabalho é organizado em stories, executado por tasks e conduzido por 5 agentes. Funciona no Claude Code, no Codex (ChatGPT), no Gemini CLI e no Grok.
+Framework de desenvolvimento orientado por agentes de IA da Sling. O trabalho é organizado em stories, executado por tasks e conduzido por 5 agentes. Funciona no **Claude Code**, no **Codex (ChatGPT)**, no **Gemini CLI** e no **Grok**.
 
-> **Status:** framework em validação. O instalador ainda não existe; veja [Como testar](#como-testar).
+[![CI](https://github.com/Sling-Solucoes-de-Mercado/sia-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/Sling-Solucoes-de-Mercado/sia-framework/actions/workflows/ci.yml)
 
 ---
+
+## Instalação
+
+Abra o terminal **na pasta do seu projeto** (nova ou existente) e escolha uma opção.
+
+### macOS e Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sling-Solucoes-de-Mercado/sia-framework/main/install.sh | sh
+```
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/Sling-Solucoes-de-Mercado/sia-framework/main/install.ps1 | iex
+```
+
+### Com Node.js 22+ instalado
+
+```bash
+npx github:Sling-Solucoes-de-Mercado/sia-framework
+```
+
+### Executável para baixar
+
+Nas [Releases](https://github.com/Sling-Solucoes-de-Mercado/sia-framework/releases/latest) há o executável `sia` para cada sistema. Não precisa de Node para instalar:
+
+| Sistema | Arquivo |
+|---------|---------|
+| macOS (Apple Silicon) | `sia-macos-arm64.tar.gz` |
+| macOS (Intel) | `sia-macos-x64.tar.gz` |
+| Linux x64 / ARM | `sia-linux-x64.tar.gz` / `sia-linux-arm64.tar.gz` |
+| Windows | `sia-windows-x64.zip` |
+
+Descompacte e rode `sia install` na pasta do projeto. Na primeira vez, o macOS pode pedir permissão em *Ajustes > Privacidade e Segurança*, e o Windows pode mostrar o aviso do SmartScreen (*Mais informações > Executar assim mesmo*).
+
+### O que a instalação faz
+
+1. Pergunta o nome do projeto, o tipo (novo ou existente) e as IDEs que você usa.
+2. Copia o framework para `.sia-core/`.
+3. Gera a integração de cada IDE: `.claude/`, `AGENTS.md` + `.agents/`, `.gemini/` + `GEMINI.md` e `.grok/`.
+4. Cria as pastas `docs/` e acrescenta `.sia/` ao `.gitignore`.
+
+Para responder tudo de uma vez: `sia install --yes --name "Meu App" --type greenfield --ide claude-code,codex`.
+
+**Atualizar:** `sia update`. O comando preserva o `core-config.yaml`, a memória dos agentes e as preferências técnicas, e guarda uma cópia da versão anterior em `.sia/backups/`.
+
+**Requisito para os agentes:** os hooks de governança (push só pelo `@devops`) usam o Node.js 22+. O instalador avisa se ele não estiver presente.
+
+---
+
+## Primeiros passos
+
+1. Abra o projeto na sua IDE.
+2. Ative um agente: `/sia-pm` (ou `@pm`). Os comandos começam com `*`, por exemplo `*help`.
+3. Projeto novo: `@pm *create-project-brief`. Projeto existente: `@dev *document-project`.
 
 ## O time
 
@@ -16,8 +72,6 @@ Framework de desenvolvimento orientado por agentes de IA da Sling. O trabalho é
 | `@validator` | Vera 🔍 | Inspeção técnica da entrega: lacunas, falhas, segurança, regressão, código morto |
 | `@squad-creator` | Elo 🔗 | Criar squads e novos agentes, tasks e workflows |
 
-Ative um agente com `@pm`, `/sia-pm` ou `/SIA:agents:pm` (o formato varia por IDE) e use os comandos com `*`, como `*help`, `*create-story` e `*develop 1.1`.
-
 ## O ciclo de uma story
 
 ```
@@ -27,37 +81,19 @@ Ative um agente com `@pm`, `/sia-pm` ou `/SIA:agents:pm` (o formato varia por ID
 
 Se o gate sair `FAIL`, a story volta para o `@dev` (`*apply-qa-fixes`) e passa por nova inspeção.
 
-## Estrutura do repositório
-
-```text
-.sia-core/          o framework: agentes, tasks, templates, checklists, workflows, regras, skills, hooks e CLI
-docs/sia/           documentação de manutenção (arquitetura, CLI, mapa AIOX → SIA)
-```
-
-As pastas das IDEs (`.claude/`, `.codex/`, `.gemini/`, `.grok/`) e os arquivos `CLAUDE.md`, `AGENTS.md` e `GEMINI.md` são gerados por `sia sync` a partir do `.sia-core/` e não são editados à mão.
-
 ## CLI
 
+Depois de instalado, o executável `sia` também roda os comandos do projeto:
+
 ```bash
-node .sia-core/cli/sia.js validate        # valida agentes, tasks, workflows e referências
-node .sia-core/cli/sia.js doctor          # diagnóstico do ambiente
-node .sia-core/cli/sia.js sync            # gera as integrações das IDEs
-node .sia-core/cli/sia.js story status 1.1
-node .sia-core/cli/sia.js mcp setup supabase
+sia doctor                 # diagnóstico do ambiente
+sia validate               # valida agentes, tasks, workflows e referências
+sia sync                   # regenera as integrações das IDEs
+sia story status 1.1       # situação da story e próximo comando
+sia mcp setup supabase     # conecta o MCP do Supabase nas IDEs
 ```
 
 Referência completa: [docs/sia/cli.md](docs/sia/cli.md).
-
-## Como testar
-
-Sem instalador, a validação é feita num projeto-sandbox:
-
-```bash
-mkdir -p ~/sia-sandbox && cd ~/sia-sandbox && git init
-node /caminho/para/sia-framework/.sia-core/cli/sia.js sync --target . --link-core
-```
-
-O comando cria um link para o `.sia-core` deste repositório e gera as integrações das 4 IDEs. Depois, abra o sandbox na IDE e ative um agente, por exemplo `/sia-pm`.
 
 ## Documentação
 
@@ -68,6 +104,16 @@ O comando cria um link para o `.sia-core` deste repositório e gera as integraç
 - [Referência da CLI](docs/sia/cli.md)
 - [Mapa AIOX → SIA](docs/sia/porting-map.yaml)
 
+## Desenvolvimento do framework
+
+```bash
+npm test                                   # testes do instalador e da CLI
+node .sia-core/cli/sia.js validate         # valida o .sia-core
+node scripts/build-sea.js                  # gera o executável para o sistema atual (Node oficial 22+)
+```
+
+Uma nova versão é publicada criando a tag `vX.Y.Z`. O workflow `Release` gera os executáveis e os anexa à Release.
+
 ---
 
-Derivado do Synkra AIOX (licença MIT).
+Licença MIT. Derivado do [Synkra AIOX](https://github.com/SynkraAI/aiox-core) (MIT); veja [NOTICE](NOTICE).

@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Testes (Node ${{ matrix.node }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['22', '26']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Validar o framework
+        run: node .sia-core/cli/sia.js validate
+      - name: Testes do instalador
+        run: node --test installer/tests/install.test.js
+      - name: Testes da CLI
+        # Os testes da CLI usam links simbólicos (sandbox), que exigem privilégio no Windows.
+        if: runner.os != 'Windows'
+        working-directory: .sia-core
+        run: node --test cli/tests/index.js
