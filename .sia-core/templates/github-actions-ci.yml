@@ -1,0 +1,170 @@
+# Template de CI do SIA (GitHub Actions): lint, typecheck, testes, build e auditoria de dependências.
+# Usado por: @devops em *configure-ci (copiado para .github/workflows/ci.yml).
+#
+# Placeholders (substitua todos antes de gravar; os valores vêm do core-config.yaml e do projeto):
+#   {{production_branch}}  integrations.vercel.productionBranch ou a branch padrão do repositório (ex.: main)
+#   {{node_version}}       versão LTS do Node.js usada pelo projeto (ex.: 24.x); prefira a do .nvmrc ou de engines.node
+#   {{package_manager}}    npm | pnpm | yarn (cache do actions/setup-node)
+#   {{install_command}}    npm ci | pnpm install --frozen-lockfile | yarn install --frozen-lockfile
+#   {{lint_command}} {{typecheck_command}} {{test_command}} {{build_command}}
+#                          quality.scripts do core-config; remova o passo cujo script não existe no projeto
+#
+# Os nomes dos jobs (lint, test, build) são os checks exigidos na proteção de branch (*setup-github).
+# Com pnpm, acrescente o passo pnpm/action-setup antes do setup-node em cada job.
+# Para outras branches de integração (ex.: develop), acrescente-as em push e pull_request.
+
+name: CI
+
+on:
+  push:
+    branches: ['{{production_branch}}']
+  pull_request:
+    branches: ['{{production_branch}}']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '{{node_version}}'
+  # Variáveis de build não secretas: use vars.*; segredos: secrets.* (nunca valores literais)
+  # NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint e typecheck
+  # ---------------------------------------------------------------------------
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: '{{package_manager}}'
+
+      - name: Instalar dependências
+        run: '{{install_command}}'
+
+      - name: Lint
+        run: '{{lint_command}}'
+
+      - name: Typecheck
+        run: '{{typecheck_command}}'
+
+  # ---------------------------------------------------------------------------
+  # Testes
+  # ---------------------------------------------------------------------------
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: '{{package_manager}}'
+
+      - name: Instalar dependências
+        run: '{{install_command}}'
+
+      - name: Testes
+        run: '{{test_command}}'
+        env:
+          CI: true
+
+      # Cobertura (opcional): exige o segredo CODECOV_TOKEN
+      # - name: Enviar cobertura
+      #   uses: codecov/codecov-action@v4
+      #   if: always()
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     fail_ci_if_error: false
+
+  # ---------------------------------------------------------------------------
+  # Build
+  # ---------------------------------------------------------------------------
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: '{{package_manager}}'
+
+      - name: Instalar dependências
+        run: '{{install_command}}'
+
+      - name: Build
+        run: '{{build_command}}'
+
+  # ---------------------------------------------------------------------------
+  # Auditoria de dependências (informativa; o bloqueio de vulnerabilidade crítica é do *pre-push)
+  # ---------------------------------------------------------------------------
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: '{{package_manager}}'
+
+      - name: Instalar dependências
+        run: '{{install_command}}'
+
+      - name: Auditoria de dependências
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # Testes de integração (opcional): banco Postgres efêmero
+  # ---------------------------------------------------------------------------
+  # integration:
+  #   name: integration
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   services:
+  #     postgres:
+  #       image: postgres:15
+  #       env:
+  #         POSTGRES_PASSWORD: postgres
+  #         POSTGRES_DB: test
+  #       ports:
+  #         - 5432:5432
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: '{{package_manager}}'
+  #     - run: '{{install_command}}'
+  #     - run: npm run test:integration
+  #       env:
+  #         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test

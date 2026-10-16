@@ -1,0 +1,116 @@
+# Template de CD do SIA: deploy na Vercel pelo GitHub Actions.
+# Preview em cada pull request para a branch de produção; produção em cada push (merge) nela.
+# Usado por: @devops em *configure-ci (copiado para .github/workflows/cd.yml).
+# Base: guia oficial https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel
+# (o guia usa um arquivo para preview e outro para produção; aqui são dois jobs no mesmo arquivo).
+#
+# Placeholders:
+#   {{production_branch}}  integrations.vercel.productionBranch (ex.: main)
+#   {{node_version}}       versão LTS do Node.js usada pelo projeto (ex.: 24.x)
+#
+# Segredos do repositório (Settings → Secrets and variables → Actions), gravados com `gh secret set`:
+#   VERCEL_TOKEN       token da Vercel com o menor escopo possível (vercel.com/account/tokens)
+#   VERCEL_ORG_ID      orgId de .vercel/project.json (criado por `vercel link`)
+#   VERCEL_PROJECT_ID  projectId de .vercel/project.json; os dois IDs são exigidos juntos
+#
+# Antes de ativar:
+#   1. Desligue o deploy automático da integração Git da Vercel, senão os dois deployam o mesmo commit:
+#      vercel.json → { "git": { "deploymentEnabled": false } }
+#   2. Em Settings → Environments → production, exija revisor para aprovar o deploy de produção.
+#   3. Com --prebuilt, as variáveis de sistema da Vercel (ex.: VERCEL_URL) não existem no build, e variáveis
+#      do tipo Secret não são legíveis pela CLI. Se o build depende delas, troque "vercel build" +
+#      "deploy --prebuilt" por "vercel deploy" (build na Vercel).
+#
+# O token vai pela variável de ambiente VERCEL_TOKEN, como recomenda a documentação da CLI para CI;
+# o guia passa --token na linha de comando, o que expõe o valor na lista de processos.
+# PRs vindos de fork não recebem segredos: o job de preview os ignora.
+
+name: CD Vercel
+
+on:
+  pull_request:
+    branches: ['{{production_branch}}']
+  push:
+    branches: ['{{production_branch}}']
+
+permissions:
+  contents: read
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Preview: um deploy por pull request
+  # ---------------------------------------------------------------------------
+  deploy-preview:
+    name: deploy-preview
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '{{node_version}}'
+
+      - name: Instalar a CLI da Vercel
+        run: npm install --global vercel@latest
+
+      - name: Baixar variáveis e configuração do projeto (preview)
+        run: vercel pull --yes --environment=preview
+
+      - name: Build
+        run: vercel build
+
+      - name: Deploy de preview
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # Produção: deploy a cada push (merge) na branch de produção
+  # ---------------------------------------------------------------------------
+  deploy-production:
+    name: deploy-production
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '{{node_version}}'
+
+      - name: Instalar a CLI da Vercel
+        run: npm install --global vercel@latest
+
+      - name: Baixar variáveis e configuração do projeto (produção)
+        run: vercel pull --yes --environment=production
+
+      - name: Build de produção
+        run: vercel build --prod
+
+      - name: Deploy de produção
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt --prod)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Produção: $url" >> "$GITHUB_STEP_SUMMARY"

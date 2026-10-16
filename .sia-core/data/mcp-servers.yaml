@@ -1,0 +1,108 @@
+# ─────────────────────────────────────────────────────────────
+# SIA: servidores MCP e formato de configuração por IDE
+#
+# Lido por `sia mcp setup {supabase|vercel} [--ide ...]`, por `sia mcp status`
+# e pela task setup-mcp.md (@devops). Chaves em inglês; textos em português.
+#
+# Contrato com a CLI:
+#   - {{url}} = servers.{id}.url + query string montada a partir de servers.{id}.params;
+#     parâmetros com valor vazio são omitidos.
+#   - Valores de params podem usar {{caminho.no.core-config}}.
+#   - ides.{ide}.entry é o template do valor gravado em {file} → {key} → {id};
+#     placeholders aceitos: {{url}}, {{id}}, {{env.NOME}}.
+#   - Entradas TOML são gravadas como tabela [{key}.{id}] entre os comentários
+#     "# >>> SIA MCP: {id}" e "# <<< SIA MCP: {id}".
+#   - auth: oauth (login no navegador, nada gravado) | bearer-env (token lido de variável de ambiente
+#     listada em env; o valor nunca vai para o arquivo).
+#
+# Referência para auth bearer-env (formato de cada IDE, sem valor literal):
+#   claude-code  "headers": {"Authorization": "Bearer ${NOME}"}   (.mcp.json expande ${VAR})
+#   codex        bearer_token_env_var = "NOME"
+#   gemini       "headers": {"Authorization": "Bearer ${NOME}"}   (settings.json expande $VAR e ${VAR})
+#   grok         bearer_token_env_var = "NOME"                    (ou headers com ${NOME})
+#
+# Verificado em 2026-10-16 nas documentações oficiais citadas em `docs:` e nos comentários de cada IDE.
+# ─────────────────────────────────────────────────────────────
+
+servers:
+  supabase:
+    name: Supabase
+    docs: https://supabase.com/docs/guides/ai-tools/mcp
+    url: https://mcp.supabase.com/mcp
+    params:
+      project_ref: '{{integrations.supabase.projectRef}}'   # escopo de um projeto (desliga as ferramentas de conta)
+      read_only: '{{integrations.supabase.mcp.readOnly}}'   # true = consultas como usuário Postgres somente leitura
+      features: '{{integrations.supabase.mcp.features}}'    # lista separada por vírgula; vazia = omitida
+    auth: oauth
+    env: []
+    notes: >-
+      Login OAuth no navegador com registro dinâmico de cliente: não precisa de token pessoal. Escolha a
+      organização que contém o projeto. O SIA usa escopo de projeto e somente leitura por padrão; não conecte
+      em produção sem necessidade e mantenha a aprovação manual de cada chamada de ferramenta (risco de prompt
+      injection). Outros parâmetros aceitos: features=<grupos> (database, docs, debugging, development,
+      functions, account, branching, storage; todos ligados menos storage) e skip_elicitations=<ferramentas>.
+      Em CI ou cliente sem OAuth: token pessoal com escopo no header "Authorization: Bearer
+      ${SUPABASE_ACCESS_TOKEN}" (auth: bearer-env). Desenvolvimento local com a CLI do Supabase:
+      http://localhost:54321/mcp. A alternativa stdio via npx (@supabase/mcp-server-supabase com --read-only,
+      --project-ref e SUPABASE_ACCESS_TOKEN) saiu da documentação oficial em 2025-10; use só se a IDE não
+      aceitar HTTP.
+
+  vercel:
+    name: Vercel
+    docs: https://vercel.com/docs/agent-resources/vercel-mcp
+    url: https://mcp.vercel.com
+    auth: oauth
+    env: []
+    notes: >-
+      Só OAuth; a documentação não oferece token. A conexão recebe o mesmo acesso da sua conta na Vercel,
+      inclusive ferramentas que fazem deploy, mexem em domínios e fazem compras: mantenha a confirmação humana
+      ligada. A Vercel só aceita clientes revisados: Claude Code, Codex CLI e Gemini CLI estão na lista; Grok
+      Build não está (o add-mcp da Vercel o configura, mas a autorização pode ser recusada). Para o Gemini CLI
+      a Vercel documenta a ponte stdio {"command": "npx", "args": ["mcp-remote", "https://mcp.vercel.com"]} em
+      ~/.gemini/settings.json; use-a se o httpUrl falhar. Escopo de projeto (opcional, só a pedido): o comando
+      `vercel mcp --project` aponta o cliente para https://mcp.vercel.com/<org>/<project>; o padrão, usado
+      pela CLI do SIA, é o endpoint compartilhado.
+
+ides:
+  claude-code:
+    # https://code.claude.com/docs/en/mcp (escopo de projeto: .mcp.json; `claude mcp add --transport http --scope project`)
+    file: .mcp.json
+    format: json
+    key: mcpServers
+    entry: { type: http, url: '{{url}}' }
+    login: >-
+      Abra o Claude Code na raiz do projeto e aprove o servidor "{{id}}" do .mcp.json quando for perguntado.
+      Depois rode /mcp, selecione "{{id}}" e escolha Authenticate para fazer o login no navegador.
+      Se as ferramentas não aparecerem, reinicie a sessão.
+
+  codex:
+    # https://learn.chatgpt.com/docs/extend/mcp?surface=cli (projeto: .codex/config.toml, lido só em projeto confiável)
+    file: .codex/config.toml
+    format: toml
+    key: mcp_servers
+    entry: { url: '{{url}}' }
+    login: >-
+      Marque o projeto como confiável no Codex; sem isso o .codex/config.toml do projeto não é lido.
+      No terminal, rode `codex mcp login {{id}}` para o login OAuth no navegador e confira com /mcp dentro do Codex.
+
+  gemini:
+    # https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md (httpUrl = Streamable HTTP)
+    file: .gemini/settings.json
+    format: json
+    key: mcpServers
+    entry: { httpUrl: '{{url}}' }
+    login: >-
+      Use o Gemini CLI 0.20.2 ou mais novo. Se o recurso de pastas confiáveis estiver ativo, confie na pasta do
+      projeto; sem isso o .gemini/settings.json do projeto não é lido. Dentro do Gemini CLI, rode /mcp auth {{id}}
+      e conclua o login no navegador; os tokens ficam em ~/.gemini/mcp-oauth-tokens.json.
+
+  grok:
+    # ~/.grok/docs/user-guide/07-mcp-servers.md (projeto: .grok/config.toml; `grok mcp add --transport http --scope project`)
+    file: .grok/config.toml
+    format: toml
+    key: mcp_servers
+    entry: { url: '{{url}}', enabled: true }
+    login: >-
+      Abra o Grok Build no projeto e confie na pasta se for perguntado. Rode /mcps, selecione "{{id}}" e
+      pressione i para o login OAuth no navegador (r recarrega a lista depois de editar o arquivo). Os tokens
+      ficam em ~/.grok/mcp_credentials.json. Diagnóstico: `grok mcp doctor {{id}}`.
