@@ -1,0 +1,68 @@
+# Template do documento de estratégia de índices.
+# Usado por: @dev [Dados] em *db-performance (task db-performance), via create-doc.
+template:
+  id: index-strategy-template
+  name: Estratégia de Índices
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/architecture/index-strategy.md
+    title: "{{project_name}}: Estratégia de Índices"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: overview
+    title: Visão Geral
+    instruction: |
+      - Metas de latência por tipo de consulta (interativa abaixo de 100 ms, relatório abaixo de 1 s,
+        batch abaixo de 5 s) e perfil de carga
+      - Equilíbrio entre leitura e escrita: cada índice acelera leitura e encarece escrita
+      - Recursos em uso: B-tree, GIN, GiST, BRIN, índices parciais, de expressão e cobertos (INCLUDE)
+    elicit: true
+
+  - id: patterns
+    title: Mapa de Padrões de Acesso
+    type: table
+    columns: [Consulta, Filtros, Ordenação, Seletividade estimada, Índice proposto, Justificativa]
+    instruction: |
+      Uma linha por consulta frequente (fonte: pg_stat_statements e os hot paths do *db-performance).
+      Inclua as colunas usadas em policies RLS (user_id, tenant_id): a policy filtra toda consulta da tabela.
+    elicit: true
+
+  - id: catalog
+    title: Catálogo por Tabela
+    repeatable: true
+    instruction: |
+      Repita por tabela:
+      ### `{tabela}`
+      - Índices existentes (nome → colunas, predicado WHERE, INCLUDE)
+      - Novos índices propostos e o padrão de acesso que atendem
+      - Índices parciais (ex.: WHERE deleted_at IS NULL)
+      - Índices cobertos (INCLUDE) para evitar acesso à tabela
+      - Índices a remover (sem uso ou duplicados), com a evidência
+      - Manutenção: risco de bloat e cadência de REINDEX CONCURRENTLY
+    elicit: true
+
+  - id: fulltext
+    title: Busca Textual
+    instruction: |
+      - Colunas tsvector geradas (GENERATED ALWAYS AS (to_tsvector('portuguese', ...)) STORED)
+      - GIN para tsvector; pg_trgm (gin_trgm_ops) para ILIKE e similaridade
+      - Funções de ranking e consultas de exemplo
+      Omita a seção se o projeto não tem busca textual.
+    elicit: true
+
+  - id: maintenance
+    title: Aplicação, Monitoramento e Manutenção
+    instruction: |
+      - Aplicação: migration com CREATE INDEX IF NOT EXISTS, pelo *db-migrate; em tabela grande de
+        produção, CREATE INDEX CONCURRENTLY fora da migration (o Supabase CLI roda cada migration em
+        transação), mantendo o IF NOT EXISTS na migration
+      - Medição antes e depois (EXPLAIN ANALYZE dos padrões afetados)
+      - pg_stat_user_indexes: idx_scan por índice e meta de uso
+      - Política de remoção de índices sem uso (janela mínima de observação)
+      - Estratégia de REINDEX e de autovacuum para tabelas com muita escrita
+    elicit: true

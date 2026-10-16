@@ -180,7 +180,8 @@ test('sync: settings.json preserva o que não é do SIA e é idempotente', (t) =
   assert.ok(settings.permissions.deny.includes('Read(secrets/**)'));
   assert.ok(!settings.permissions.deny.includes('Edit(.sia-core/antigo/**)'));
   assert.ok(settings.permissions.deny.includes('Edit(.sia-core/constitution.md)'));
-  assert.ok(settings.permissions.deny.includes('Write(.sia-core/tasks/**)'));
+  assert.ok(settings.permissions.deny.includes('Edit(.sia-core/tasks/**)'));
+  assert.ok(!settings.permissions.deny.some((rule) => rule.startsWith('Write(')), 'Claude Code só aplica regras Edit(...)');
   assert.ok(settings.permissions.deny.includes('Edit(.sia-core/data/workflow-chains.yaml)'), 'diretório protegido expandido por causa da exceção');
   assert.ok(!settings.permissions.deny.includes('Edit(.sia-core/data/**)'));
   assert.ok(!settings.permissions.deny.includes('Edit(.sia-core/data/technical-preferences.md)'));

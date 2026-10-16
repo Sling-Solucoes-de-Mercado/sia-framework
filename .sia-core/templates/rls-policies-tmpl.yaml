@@ -1,0 +1,309 @@
+# Template do documento de políticas RLS (Supabase).
+# Usado por: @dev [Dados] em *db-policy (task db-policy-apply), via create-doc.
+# Os exemplos SQL seguem as regras do SIA: (select auth.uid()), papel explícito, índice na coluna
+# da policy, helpers SECURITY DEFINER no schema private com search_path vazio.
+template:
+  id: rls-policies-template
+  name: Políticas RLS do Supabase
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/architecture/rls-policies.md
+    title: "{{project_name}}: Políticas RLS"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: overview
+    title: Visão Geral da RLS
+    instruction: |
+      Documente a estratégia:
+      - Propósito: o modelo de segurança e por que RLS
+      - Contexto de autenticação: Supabase Auth (JWT). Disponíveis: auth.uid() (id do usuário),
+        auth.jwt() (claims) e app_metadata (claims que só o servidor altera)
+      - Modelo: dono, papéis (RBAC), multi-tenant; acesso público × autenticado × papéis específicos
+      - Desempenho: impacto das policies e índices que as sustentam
+      - Testes: usuários de teste e cenários (*db-test-as-user)
+    elicit: true
+
+  - id: policy-patterns
+    title: Padrões de Policy
+    instruction: |
+      Liste os padrões reutilizados no projeto (catálogo completo em rls-security-patterns.md):
+      1. Dono: `(select auth.uid()) = user_id`
+      2. Tenant: `tenant_id = ANY ((select private.user_tenant_ids()))`
+      3. Papel por claim de servidor: `((select auth.jwt()) -> 'app_metadata' ->> 'role') = 'admin'`
+      4. Leitura pública e escrita autenticada: SELECT com `USING (true)`; escrita conferindo o dono
+      5. Hierarquia (organização > time > usuário): funções auxiliares SECURITY DEFINER
+      Acrescente os padrões próprios da aplicação.
+    elicit: true
+
+  - id: table-policies
+    title: Policies por Tabela
+    repeatable: true
+    instruction: |
+      Repita por tabela com RLS:
+      ### Tabela `{tabela}`
+      - Modelo: kiss (uma policy FOR ALL) ou granular (uma por operação)
+      - Para cada policy: nome, operação, papel (TO), USING, WITH CHECK, regra de negócio e índice de apoio
+      USING filtra as linhas existentes (SELECT, UPDATE, DELETE); WITH CHECK valida as linhas
+      novas (INSERT, UPDATE). Em UPDATE, use os dois.
+    template: |
+      | Policy | Operação | Papel | USING | WITH CHECK | Regra de negócio | Índice |
+      |--------|----------|-------|-------|------------|------------------|--------|
+    examples:
+      - |
+        ```sql
+        ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+        CREATE POLICY posts_select ON public.posts FOR SELECT TO authenticated
+          USING ((select auth.uid()) = user_id);
+        CREATE POLICY posts_insert ON public.posts FOR INSERT TO authenticated
+          WITH CHECK ((select auth.uid()) = user_id);
+        CREATE POLICY posts_update ON public.posts FOR UPDATE TO authenticated
+          USING ((select auth.uid()) = user_id)
+          WITH CHECK ((select auth.uid()) = user_id);
+        CREATE POLICY posts_delete ON public.posts FOR DELETE TO authenticated
+          USING ((select auth.uid()) = user_id
+                 OR ((select auth.jwt()) -> 'app_metadata' ->> 'role') = 'admin');
+        -- KISS equivalente: uma policy FOR ALL com USING e WITH CHECK iguais
+        ```
+    elicit: true
+
+  - id: public-tables
+    title: Tabelas Públicas
+    instruction: |
+      Para cada tabela com leitura pública, documente por que é pública e quais dados é seguro expor.
+      ```sql
+      ALTER TABLE public.{tabela} ENABLE ROW LEVEL SECURITY;
+      CREATE POLICY {tabela}_public_read ON public.{tabela} FOR SELECT TO anon, authenticated
+        USING (true);
+      CREATE POLICY {tabela}_auth_insert ON public.{tabela} FOR INSERT TO authenticated
+        WITH CHECK ((select auth.uid()) = author_id);
+      ```
+    elicit: false
+
+  - id: service-role
+    title: Uso da Service Role
+    instruction: |
+      A chave secreta (ou a service role) ignora a RLS. Documente cada uso:
+      - Operações de backend que precisam dela: jobs agendados, Edge Functions administrativas,
+        migração de dados, agregações analíticas
+      - Proteção: onde a chave fica (só servidor, nunca com prefixo público), quem tem acesso
+        e onde as operações são registradas
+      - Alternativas preferíveis: função SECURITY DEFINER com checagem própria ou policy específica
+    elicit: false
+
+  - id: helper-functions
+    title: Funções Auxiliares de Segurança
+    instruction: |
+      Documente as funções usadas pelas policies. Regras: schema private (fora da API), SECURITY DEFINER
+      só quando precisar ler tabela protegida (evita recursão de RLS), search_path vazio, nomes
+      qualificados e EXECUTE revogado de PUBLIC e anon.
+      ```sql
+      CREATE SCHEMA IF NOT EXISTS private;
+      GRANT USAGE ON SCHEMA private TO authenticated;
+
+      CREATE OR REPLACE FUNCTION private.user_org_id()
+      RETURNS uuid
+      LANGUAGE sql
+      STABLE
+      SECURITY DEFINER
+      SET search_path = ''
+      AS $$
+        SELECT org_id FROM public.user_profiles WHERE user_id = (SELECT auth.uid());
+      $$;
+      REVOKE EXECUTE ON FUNCTION private.user_org_id() FROM PUBLIC, anon;
+      GRANT EXECUTE ON FUNCTION private.user_org_id() TO authenticated;
+
+      -- Uso na policy: USING (org_id = (SELECT private.user_org_id()))
+      ```
+    elicit: false
+
+  - id: multi-tenancy
+    title: Multi-Tenancy
+    condition: multi_tenant
+    instruction: |
+      - Identificação do tenant: coluna (tenant_id, org_id) e origem (claim no JWT ou consulta a tenant_members)
+      - Tabelas com escopo de tenant e suas policies (template sql/rls-tenant.sql)
+      - Cenários entre tenants: recursos compartilhados, superadministrador, relações entre tenants
+      - Desempenho: índice em tenant_id em toda tabela do tenant
+      ```sql
+      -- Tenant pela claim de servidor (sem consulta extra)
+      CREATE POLICY projects_tenant_isolation ON public.projects FOR ALL TO authenticated
+        USING (tenant_id = ((select auth.jwt()) -> 'app_metadata' ->> 'tenant_id')::uuid)
+        WITH CHECK (tenant_id = ((select auth.jwt()) -> 'app_metadata' ->> 'tenant_id')::uuid);
+      ```
+    elicit: true
+
+  - id: storage-policies
+    title: Policies do Supabase Storage
+    instruction: |
+      O Storage usa RLS na tabela storage.objects; sem policy, nada pode ser enviado.
+      Organize os arquivos por pasta do dono: `{bucket}/{user_id}/{arquivo}`.
+      ```sql
+      -- Upload só na própria pasta
+      CREATE POLICY avatars_insert_own ON storage.objects FOR INSERT TO authenticated
+        WITH CHECK (bucket_id = 'avatars'
+                    AND (storage.foldername(name))[1] = (select auth.uid())::text);
+      -- Leitura pública de um bucket
+      CREATE POLICY avatars_public_read ON storage.objects FOR SELECT TO public
+        USING (bucket_id = 'avatars');
+      -- Exclusão só dos próprios arquivos
+      CREATE POLICY avatars_delete_own ON storage.objects FOR DELETE TO authenticated
+        USING (bucket_id = 'avatars'
+               AND (storage.foldername(name))[1] = (select auth.uid())::text);
+      -- Upsert (sobrescrever) exige também SELECT e UPDATE com a mesma regra
+      -- Tenant: (storage.foldername(name))[1] = ((select auth.jwt()) -> 'app_metadata' ->> 'tenant_id')
+      ```
+      Buckets: privado (`public = false`) exige policy de leitura; público serve arquivos por URL,
+      mas upload e exclusão continuam sujeitos às policies.
+      Cuidados: sempre filtre bucket_id; valide o tipo do arquivo no servidor (a policy não lê o conteúdo);
+      mantenha as policies simples, pois rodam em toda operação de arquivo.
+    elicit: false
+
+  - id: performance
+    title: Desempenho da RLS
+    instruction: |
+      Aplique a toda policy (otimizações da documentação de RLS do Supabase):
+      1. Envolva funções de auth em SELECT: `(select auth.uid())`, `(select auth.jwt())`. O Postgres
+         avalia uma vez por statement, não por linha (ganho em torno de 95% nos testes da Supabase).
+      2. Indexe toda coluna usada em USING e WITH CHECK (ganho de até 99% em tabelas grandes).
+      3. Declare o papel (TO authenticated): a policy nem é avaliada para outros papéis.
+      4. Prefira claims do JWT a joins com a tabela de origem na policy.
+      5. Use função SECURITY DEFINER para consultar tabelas de permissão protegidas por RLS.
+      6. Filtre também no cliente (`.eq('user_id', userId)`): ajuda o planejador a usar o índice.
+      Meça com EXPLAIN ANALYZE como `authenticated` (*db-performance).
+    elicit: false
+
+  - id: advanced-patterns
+    title: Padrões Avançados
+    instruction: |
+      Documente só os que o projeto usa.
+      ## Acesso por tempo (conteúdo agendado)
+      ```sql
+      CREATE POLICY posts_scheduled ON public.posts FOR SELECT TO authenticated
+        USING ((publish_at IS NULL OR publish_at <= now())
+               AND (expire_at IS NULL OR expire_at > now()));
+      CREATE INDEX idx_posts_scheduling ON public.posts (publish_at, expire_at)
+        WHERE publish_at IS NOT NULL OR expire_at IS NOT NULL;
+      ```
+      ## Hierarquia (organização > time > usuário)
+      ```sql
+      -- Admin da organização vê tudo da organização; membro do time vê só o time
+      CREATE POLICY resources_hierarchy ON public.resources FOR SELECT TO authenticated
+        USING (org_id = ANY ((select private.user_admin_org_ids()))
+               OR team_id = ANY ((select private.user_team_ids())));
+      -- Índices: user_org_memberships (user_id, org_id), user_team_memberships (user_id, team_id),
+      -- resources (org_id) e resources (team_id)
+      ```
+      ## Papel por claim personalizada (custom access token hook)
+      Nunca altere a claim `role`: ela é o papel do Postgres usado pela API. Use `user_role`
+      (via hook) ou `app_metadata.role` (via API admin do Auth).
+      ```sql
+      CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
+      RETURNS jsonb LANGUAGE plpgsql STABLE AS $$
+      DECLARE
+        claims jsonb := event -> 'claims';
+        v_role text;
+      BEGIN
+        SELECT role INTO v_role FROM public.user_profiles WHERE user_id = (event ->> 'user_id')::uuid;
+        claims := jsonb_set(claims, '{user_role}', coalesce(to_jsonb(v_role), 'null'::jsonb));
+        RETURN jsonb_set(event, '{claims}', claims);
+      END;
+      $$;
+      GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+      GRANT EXECUTE ON FUNCTION public.custom_access_token_hook TO supabase_auth_admin;
+      REVOKE EXECUTE ON FUNCTION public.custom_access_token_hook FROM authenticated, anon, public;
+      GRANT SELECT ON public.user_profiles TO supabase_auth_admin;
+      CREATE POLICY user_profiles_auth_admin_read ON public.user_profiles
+        FOR SELECT TO supabase_auth_admin USING (true);
+      -- Ative em Dashboard → Authentication → Hooks → Custom Access Token
+      -- Policy: CASE ((select auth.jwt()) ->> 'user_role') WHEN 'admin' THEN true
+      --         WHEN 'manager' THEN org_id = ... ELSE user_id = (select auth.uid()) END
+      ```
+      ## MFA obrigatório (AAL2)
+      ```sql
+      CREATE POLICY sensitive_ops_mfa ON public.sensitive_operations AS RESTRICTIVE
+        FOR ALL TO authenticated
+        USING (((select auth.jwt()) ->> 'aal') = 'aal2')
+        WITH CHECK (((select auth.jwt()) ->> 'aal') = 'aal2');
+      ```
+      Policy restritiva se combina com as permissivas por AND. `aal1`: um fator; `aal2`: dois fatores.
+      ## Restrição por IP
+      Na API do Supabase, `inet_client_addr()` devolve o endereço do servidor da API, não o do usuário.
+      Restrinja IP na borda (aplicação ou proxy), não em policy.
+    elicit: false
+
+  - id: testing
+    title: Testes da RLS
+    instruction: |
+      Teste cada policy com usuários diferentes, sempre em transação desfeita no fim (*db-test-as-user):
+      ```sql
+      BEGIN;
+      SET LOCAL ROLE authenticated;
+      SELECT set_config('request.jwt.claims', '{"sub":"{user_a_uuid}","role":"authenticated"}', true);
+      SELECT count(*) FROM public.{tabela};   -- só as linhas do usuário A
+      ROLLBACK;
+      ```
+      Integração: chamadas reais com o supabase-js autenticado como cada usuário de teste.
+      Checklist:
+      - [ ] Toda tabela com dado sensível tem RLS
+      - [ ] Testado com usuário sem permissão (casos negativos)
+      - [ ] Uso da service role documentado e justificado
+      - [ ] Policies rápidas (sem Seq Scan em tabela grande)
+      - [ ] Vazamento entre tenants testado
+      - [ ] Acesso anônimo × autenticado verificado
+      - [ ] Casos de borda: valores nulos, contexto ausente
+      Cenários estáveis viram teste automatizado (pgTAP com supabase test db).
+    elicit: false
+
+  - id: migration
+    title: Migration das Policies
+    instruction: |
+      As policies entram por migration (`supabase migration new rls_{modo}_{tabela}`, aplicada pelo *db-migrate):
+      ```sql
+      ALTER TABLE public.{tabela} ENABLE ROW LEVEL SECURITY;
+      DROP POLICY IF EXISTS {tabela}_select ON public.{tabela};       -- idempotência
+      CREATE POLICY {tabela}_select ON public.{tabela} FOR SELECT TO authenticated
+        USING ((select auth.uid()) = user_id);
+      CREATE INDEX IF NOT EXISTS idx_{tabela}_user_id ON public.{tabela} (user_id);
+      GRANT SELECT, INSERT, UPDATE, DELETE ON public.{tabela} TO authenticated;
+      ```
+      Rollback (`supabase/rollback/{versão}_rollback_rls_{modo}_{tabela}.sql`): remova as policies novas
+      e recrie as anteriores. Desligar a RLS no rollback só se a tabela não tinha RLS antes e não tem
+      grant para anon ou authenticated; caso contrário, a tabela fica aberta pela API.
+    elicit: false
+
+  - id: monitoring
+    title: Monitoramento e Diagnóstico
+    instruction: |
+      - Desempenho: EXPLAIN ANALYZE como authenticated; consultas lentas em pg_stat_statements
+      - Policies ativas: `SELECT policyname, permissive, roles, cmd, qual, with_check FROM pg_policies WHERE tablename = '{tabela}';`
+      - Policy não aplica: RLS desligada, papel diferente do declarado em TO, claims ausentes
+      - Desempenho ruim: falta índice, auth.uid() sem SELECT, join na policy
+      - Acesso inesperado: policy permissiva frouxa (permissivas somam com OR), vazamento da service role,
+        view sem security_invoker
+      - Revise as policies a cada `*db-audit`
+    elicit: false
+
+  - id: best-practices
+    title: Boas Práticas
+    instruction: |
+      Princípios: comece restritivo (RLS ligada nega tudo; libere o necessário); policies simples;
+      lógica complexa em funções auxiliares; índice em toda coluna de policy; testes positivos e negativos;
+      documentação de cada policy; auditoria periódica; service role só quando inevitável.
+      Armadilhas: tabela nova sem RLS; policy lenta; teste sem contexto real de usuário; policy pega-tudo
+      (USING true em tabela sensível); USING e WITH CHECK trocados; valores nulos esquecidos;
+      user_metadata em policy.
+      Checklist de segurança:
+      - [ ] Toda tabela sensível com RLS
+      - [ ] Policies testadas com usuários sem permissão
+      - [ ] Anônimo limitado a dado público
+      - [ ] Service role mínima e documentada
+      - [ ] Colunas de policy indexadas
+      - [ ] Isolamento entre tenants verificado
+      - [ ] Casos de borda testados
+      - [ ] Policies documentadas e revisadas
+    elicit: false

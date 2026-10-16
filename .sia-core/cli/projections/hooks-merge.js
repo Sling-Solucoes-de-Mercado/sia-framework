@@ -125,9 +125,11 @@ function siaPermissionRules(boundary, sourceRoot) {
   const protectedList = Array.isArray(boundary.protected) ? boundary.protected.map(String) : [];
   const exceptions = Array.isArray(boundary.exceptions) ? boundary.exceptions.map(String) : [];
   const deny = [];
-  for (const p of expandProtected(protectedList, exceptions, sourceRoot)) deny.push(`Edit(${p})`, `Write(${p})`);
+  // O Claude Code só casa regras Edit(...) com as ferramentas de edição (Edit cobre também Write);
+  // regras Write(...) não têm efeito e geram aviso. Regras Write antigas do SIA são limpas pelo merge.
+  for (const p of expandProtected(protectedList, exceptions, sourceRoot)) deny.push(`Edit(${p})`);
   const allow = [];
-  for (const p of exceptions) allow.push(`Edit(${p})`, `Write(${p})`);
+  for (const p of exceptions) allow.push(`Edit(${p})`);
   return { deny, allow };
 }
 

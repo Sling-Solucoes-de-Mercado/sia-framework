@@ -86,7 +86,7 @@ Detalha o Artigo II da Constitution. Nenhum agente assume a autoridade de outro.
 | QA Loop | `@pm *qa-loop {storyId}` conduz inspeção, gate e correção, até 5 iterações |
 | Epic | `@pm *create-epic` → `@pm *execute-epic {epic}` (cria as stories que faltam e leva cada uma pelo SDC, em ondas) |
 | Spec | `@pm *gather-requirements` → `@dev *assess-complexity` → `@pm *research-deps` → `@pm *write-spec` → `@pm *critique-spec` → `@dev *create-plan` (todos com `{storyId}`) |
-| Banco | `@dev` [Arquitetura] decide a tecnologia → `@dev` [Dados] modela e migra (`*db-model`, `*db-migrate {migration}`) |
+| Banco | `@dev` [Arquitetura] decide a tecnologia → `@dev` [Dados] modela e migra (`*db-model`, `*db-migrate {migration}`). Em produção, a migration só é aplicada com o `dba-predeploy-checklist` em GO e confirmação explícita do usuário, ou por pipeline configurado pelo `@devops` (`*configure-ci`) |
 | MCP | qualquer agente → `@devops *setup-mcp {supabase\|vercel}` |
 | Framework | qualquer agente → `@squad-creator *create-agent`, `*create-task` ou `*create-workflow` |
 

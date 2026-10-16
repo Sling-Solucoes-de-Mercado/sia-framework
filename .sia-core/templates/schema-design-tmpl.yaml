@@ -1,0 +1,220 @@
+# Template do documento de design do schema de banco (Supabase/Postgres).
+# Usado por: @dev [Dados] em *db-model (task db-domain-modeling), via create-doc.
+template:
+  id: schema-design-template
+  name: Design do Schema de Banco
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/architecture/schema-design.md
+    title: "{{project_name}}: Design do Schema de Banco"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: overview
+    title: Visão Geral do Schema
+    instruction: |
+      Resuma o schema:
+      - Propósito e escopo deste design
+      - Banco alvo (Supabase/Postgres e versão)
+      - Entidades de negócio modeladas
+      - Escala esperada (registros, crescimento) e requisitos de desempenho
+      - Requisitos de segurança e de conformidade (ex.: LGPD)
+    elicit: true
+
+  - id: domain-model
+    title: Modelo de Domínio
+    elicit: true
+    sections:
+      - id: entities
+        title: Entidades
+        type: table
+        columns: [Entidade, Descrição, Atributos-chave, Ciclo de vida, Regras de negócio]
+        instruction: |
+          Uma linha por entidade central. Ciclo de vida: imutável, mutável ou soft delete.
+          Inclua as transições de estado relevantes e as invariantes de negócio.
+      - id: relationships
+        title: Relacionamentos
+        type: table
+        columns: [Origem, Destino, Tipo, Obrigatoriedade, Ao excluir, Significado de negócio]
+        instruction: |
+          Tipo: 1:1, 1:N ou M:N (via tabela de junção).
+          Ao excluir: CASCADE, SET NULL ou RESTRICT.
+      - id: erd
+        title: Diagrama ER
+        type: code
+        instruction: |
+          Diagrama Mermaid (erDiagram) com entidades, chaves e cardinalidades.
+        examples:
+          - |
+            ```mermaid
+            erDiagram
+              profiles ||--o{ posts : escreve
+              posts }o--o{ tags : "classificado por"
+            ```
+      - id: bounded-contexts
+        title: Contextos Delimitados
+        instruction: |
+          Se o projeto usa DDD, liste os contextos e como as entidades se relacionam entre eles.
+          Omita a seção se não se aplica.
+
+  - id: access-patterns
+    title: Padrões de Acesso
+    instruction: |
+      Documente como os dados serão lidos e escritos; isso orienta o desenho e os índices.
+      ## Padrões principais
+      Para cada consulta frequente: descrição, frequência (por segundo ou por dia),
+      latência exigida, tabelas e relacionamentos envolvidos, tamanho esperado do resultado.
+      ## Padrões secundários
+      Consultas menos frequentes, mas importantes.
+      ## Escrita
+      Frequência e volume de inserções; padrões de atualização; exclusão e arquivamento.
+      ## Relatórios e análises
+      Agregações, séries temporais e relatórios entre entidades.
+    elicit: true
+
+  - id: physical-schema
+    title: Schema Físico
+    instruction: |
+      Desenhe cada tabela. Repita o bloco abaixo por tabela:
+      ### `{tabela}`
+      **Propósito:** uma frase.
+      **Colunas:**
+      | Coluna | Tipo | Constraints | Descrição |
+      |--------|------|-------------|-----------|
+      | id | uuid | PRIMARY KEY, DEFAULT gen_random_uuid() | Identificador |
+      | created_at | timestamptz | NOT NULL, DEFAULT now() | Criação |
+      | updated_at | timestamptz | NOT NULL, DEFAULT now() | Última alteração (trigger) |
+      **Índices:** `idx_{tabela}_{coluna}` (colunas): padrão de acesso atendido.
+      **Chaves estrangeiras:** `{tabela}_{coluna}_fkey` REFERENCES {outra}(id) ON DELETE {ação}.
+      **Triggers:** nome e propósito.
+      **RLS:** modelo (kiss, granular ou tenant) e resumo das policies.
+      **Notas:** decisões, trade-offs, desempenho e evolução prevista.
+
+      Depois das tabelas:
+      ## Views
+      Views para padrões de consulta comuns, sempre com security_invoker = true.
+      ## Materialized views
+      Para agregações caras, fora do schema exposto, com a estratégia de refresh.
+    elicit: true
+
+  - id: normalization
+    title: Normalização
+    instruction: |
+      - Forma normal alvo (3FN no mínimo) e justificativa
+      - Desnormalizações intencionais: o que, por quê (desempenho, simplicidade),
+        trade-offs aceitos e como a consistência é mantida
+      - Campos derivados ou agregados armazenados e o mecanismo de sincronização
+    elicit: true
+
+  - id: indexing
+    title: Estratégia de Índices
+    instruction: |
+      Resumo do plano de índices (o detalhamento vai em index-strategy-tmpl.yaml, via *db-performance):
+      - Chaves primárias (indexadas automaticamente)
+      - Índices de FK (toda FK tem índice)
+      - Índices das colunas usadas em policies RLS
+      - Índices guiados pelos padrões de acesso: nome, tabela, colunas, tipo
+        (B-tree, GIN, GiST, BRIN), consultas atendidas, ganho estimado e custo de escrita
+      - Compostos, parciais (WHERE) e de busca textual
+      - Manutenção: monitoramento, detecção de índices sem uso, REINDEX quando necessário
+    elicit: true
+
+  - id: constraints
+    title: Constraints e Integridade
+    instruction: |
+      - Chaves primárias: UUID ou sequencial, e por quê
+      - Chaves estrangeiras: regras ON DELETE e ON UPDATE (CASCADE, SET NULL, RESTRICT)
+      - Unique: chaves naturais e unicidade de negócio, inclusive compostas
+      - Check: faixas de valor, regras de negócio, valores enumerados
+      - NOT NULL: campos obrigatórios e justificativa
+      - Defaults: valores padrão razoáveis
+      Nomeie cada constraint pelo propósito ({tabela}_{coluna}_{tipo}).
+    elicit: true
+
+  - id: security
+    title: Segurança
+    instruction: |
+      - Autenticação: como o usuário é identificado (Supabase Auth, JWT)
+      - Autorização: RBAC, ABAC e abordagem de RLS por tabela
+      - Dados sensíveis: dados pessoais, criptografia (em repouso e em trânsito),
+        hash de senhas e segredos, mascaramento fora de produção
+      - Auditoria: o que é registrado, desenho da tabela de log, retenção
+      - Conformidade: LGPD e afins; procedimentos de exclusão e anonimização
+    elicit: true
+
+  - id: supabase
+    title: Configuração do Supabase
+    condition: using_supabase
+    instruction: |
+      - RLS: estratégia por tabela (detalhes em docs/architecture/rls-policies.md),
+        claims usadas e cuidados de desempenho
+      - Realtime: tabelas na publicação supabase_realtime e padrões de assinatura
+      - Edge Functions: triggers e pontos de integração com o banco
+      - Storage: buckets, relação com tabelas e policies de storage.objects
+      - Auth: relação de auth.users com as tabelas da aplicação (public.profiles),
+        onde ficam os metadados (app_metadata para dados de autorização) e o modelo multi-tenant
+      - Schemas expostos pela API e schema privado para funções auxiliares
+    elicit: true
+
+  - id: migration-strategy
+    title: Estratégia de Migration e Evolução
+    instruction: |
+      - Migration inicial: organização dos arquivos em supabase/migrations/ e dados de seed
+      - Mudanças: nome {AAAAMMDDHHMMSS}_{nome}.sql, script de rollback por migration,
+        fluxo *db-migrate (dry-run, snapshot, aplicação, verificação)
+      - Versionamento: histórico do Supabase CLI (supabase migration list)
+      - Compatibilidade: como tratar mudanças que quebram (expand/contract), depreciação
+      - Rollback: quando é seguro, prevenção de perda de dados, planos de contingência
+    elicit: true
+
+  - id: performance
+    title: Desempenho
+    instruction: |
+      - Consultas caras identificadas e estratégia de otimização (EXPLAIN ANALYZE)
+      - Conexões: pooler (modo transação para serverless, modo sessão para migrations)
+      - Cache: o que é cacheado e como é invalidado
+      - Particionamento: tabelas candidatas e chave de partição
+      - Réplicas de leitura, se houver
+      - Monitoramento: métricas, log de consultas lentas, linha de base
+    elicit: true
+
+  - id: scalability
+    title: Escalabilidade e Crescimento
+    instruction: |
+      - Limites antes de escalar verticalmente (tamanho de compute)
+      - Escala horizontal, se aplicável: estratégia e chave de sharding
+      - Arquivamento: estratégia, retenção e destino dos dados antigos
+      - Projeções: crescimento de dados e de carga; pontos de gatilho para escalar
+    elicit: true
+
+  - id: testing
+    title: Testes e Validação
+    instruction: |
+      - Funções e constraints testadas (pgTAP com supabase test db, quando adotado)
+      - Smoke tests em supabase/smoke/ (*db-smoke-test)
+      - Testes de RLS por usuário (*db-test-as-user)
+      - Desempenho, transações e concorrência
+      - Qualidade dos dados e integridade referencial
+    elicit: false
+
+  - id: implementation
+    title: Plano de Implementação
+    instruction: |
+      - Fase 1, schema central: ordem de criação e dependências entre tabelas
+      - Fase 2, índices e constraints: criação e validação de desempenho
+      - Fase 3, segurança: RLS, policies e testes
+      - Fase 4, otimização: ajustes e monitoramento
+      - Implantação: estratégia, pontos de verificação e critérios de rollback
+    elicit: false
+
+  - id: appendix
+    title: Apêndice
+    instruction: |
+      - Scripts: links para as migrations, os seeds e os rollbacks
+      - Glossário de termos de negócio e técnicos
+      - Referências: ADRs, documentos relacionados e decisões do time
+    elicit: false

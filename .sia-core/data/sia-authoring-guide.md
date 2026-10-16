@@ -163,10 +163,12 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | Arquitetura de front-end | `docs/front-end-architecture.md` |
 | Revisões de especialistas e relatórios (brownfield discovery) | `docs/reviews/`, `docs/reports/` |
 | RUN-LOG de pipelines longos | `docs/prd/epic-{n}-run-log.md` ou `docs/runlogs/{pipeline}-run-log.md` |
+| Banco (Supabase) | `supabase/migrations/`, `supabase/rollback/`, `supabase/snapshots/`, `supabase/smoke/`, `supabase/docs/` (`SCHEMA.md`, `DB-AUDIT.md`, `migration-log.md`) |
+| Design de banco | `docs/architecture/schema-design.md`, `docs/architecture/rls-policies.md`, `docs/architecture/index-strategy.md` |
 | Gotchas | `docs/gotchas.md` |
 | Squads | `squads/{nome}/` |
 | Blueprints de squad (`*design-squad`) | `squads/.designs/` |
-| Runtime (não versionado) | `.sia/` (handoffs, `sdc/`, `qa-loop/`, `workflows/`, `backups/`, `publish/`, agente ativo) |
+| Runtime (não versionado) | `.sia/` (handoffs, `sdc/`, `qa-loop/`, `workflows/`, `backups/`, `publish/`, `db/`, agente ativo) |
 
 `{epic}.{story}` é o **storyId** (ex.: `1.3`). `{slug}` é o título curto em kebab-case, sem acentos.
 

@@ -301,7 +301,7 @@ commands:
     description: 'Modela o domínio e desenha o schema'
   - name: db-migrate
     hat: data
-    args: '{migration}'
+    args: '{migration} [local|staging|produção]'
     visibility: [full, quick, key]
     task: db-migrate.md
     description: 'Dry-run, snapshot, aplicação e verificação de migration'
@@ -313,7 +313,7 @@ commands:
     description: 'Reverte uma migration a partir de snapshot ou script de rollback'
   - name: db-seed
     hat: data
-    args: '{arquivo}'
+    args: '{arquivo} [tabela]'
     visibility: [full]
     task: db-seed.md
     description: 'Popula dados de seed ou carrega CSV'
@@ -324,12 +324,13 @@ commands:
     description: 'Roda o smoke test do banco'
   - name: db-audit
     hat: data
+    args: '[rls|schema|full]'
     visibility: [full, quick]
     task: db-security-audit.md
     description: 'Audita schema, RLS e segurança do banco'
   - name: db-policy
     hat: data
-    args: '{tabela}'
+    args: '{tabela} [kiss|granular|tenant]'
     visibility: [full, quick]
     task: db-policy-apply.md
     template: rls-policies-tmpl.yaml

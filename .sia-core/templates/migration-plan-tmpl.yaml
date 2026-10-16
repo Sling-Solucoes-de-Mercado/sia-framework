@@ -1,0 +1,278 @@
+# Template do plano de migration de risco alto (produção com dados, backfill grande, expand/contract).
+# Usado por: @dev [Dados] em *db-migrate (task db-migrate, passo 2), via create-doc.
+# Depois do plano, a prontidão é avaliada com migration-readiness-checklist.md (GO/NO-GO).
+template:
+  id: migration-plan-template
+  name: Plano de Migration
+  version: 1.0
+  output:
+    format: markdown
+    filename: supabase/docs/migration-plan-{{migration_name}}.md
+    title: "Plano de Migration: {{migration_name}}"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: summary
+    title: Resumo
+    instruction: |
+      - Objetivo e escopo da mudança; story de origem
+      - Nível de risco (baixo, médio, alto) e por quê
+      - Ambientes afetados (local, staging, produção)
+      - Janela esperada de execução e janela de rollback
+    elicit: true
+
+  - id: change-set
+    title: Conjunto de Mudanças
+    instruction: |
+      Liste cada mudança:
+      - Tabelas criadas, alteradas ou removidas
+      - Colunas adicionadas, alteradas ou removidas (tipo, default, constraints)
+      - Índices criados ou removidos (e quais exigem CONCURRENTLY)
+      - Funções, triggers e views criadas, substituídas ou removidas
+      - Policies RLS adicionadas, removidas ou alteradas; grants
+    elicit: true
+
+  - id: dependencies
+    title: Dependências e Ordem
+    instruction: |
+      Ordem de execução: 1. extensões 2. tabelas e constraints 3. funções 4. triggers 5. RLS 6. views.
+      Indique dependências entre objetos e entre arquivos, e o que exige implantação em mais de uma fase
+      (ex.: a aplicação precisa ir antes ou depois da migration).
+    elicit: true
+
+  - id: data-migration
+    title: Migração de Dados e Backfill
+    instruction: |
+      ## Volume pequeno (até cerca de 100 mil linhas, tabela com pouco tráfego)
+      UPDATE direto dentro da própria migration:
+      ```sql
+      UPDATE public.{{table}} SET {{new_column}} = {{old_column}} WHERE {{new_column}} IS NULL;
+      ```
+      ## Volume grande: lotes com COMMIT, retomáveis
+      Rode fora da migration (psql em modo autocommit; o COMMIT dentro do DO só funciona fora de
+      transação), com progresso registrado num schema fora da API:
+      ```sql
+      CREATE SCHEMA IF NOT EXISTS private;
+      CREATE TABLE IF NOT EXISTS private.migration_progress (
+        migration_name text PRIMARY KEY,
+        last_processed_id bigint NOT NULL DEFAULT 0,      -- feito para chave inteira; com UUID, use outro cursor (ex.: created_at, id)
+        total_processed bigint NOT NULL DEFAULT 0,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+
+      DO $$
+      DECLARE
+        v_name  text := '{{backfill_name}}';
+        v_batch int  := 5000;            -- ver tabela de tamanhos abaixo
+        v_last  bigint;
+        v_rows  int;
+      BEGIN
+        INSERT INTO private.migration_progress (migration_name) VALUES (v_name)
+        ON CONFLICT (migration_name) DO NOTHING;
+        SELECT last_processed_id INTO v_last FROM private.migration_progress WHERE migration_name = v_name;
+        LOOP
+          WITH batch AS (
+            SELECT id FROM public.{{table}}
+            WHERE id > v_last AND {{new_column}} IS NULL
+            ORDER BY id                   -- ordem determinística: retomável
+            LIMIT v_batch
+            FOR UPDATE SKIP LOCKED        -- não disputa linhas com outros processos
+          ), upd AS (
+            UPDATE public.{{table}} t SET {{new_column}} = t.{{old_column}}
+            FROM batch b WHERE t.id = b.id
+            RETURNING t.id
+          )
+          SELECT count(*), max(id) INTO v_rows, v_last FROM upd;
+          EXIT WHEN v_rows = 0;
+          UPDATE private.migration_progress
+             SET last_processed_id = v_last, total_processed = total_processed + v_rows, updated_at = now()
+           WHERE migration_name = v_name;
+          COMMIT;                          -- libera os locks a cada lote
+          PERFORM pg_sleep(0.1);           -- throttle
+        END LOOP;
+      END $$;
+      ```
+      Paralelismo: várias sessões com o mesmo script funcionam por causa do SKIP LOCKED.
+      Progresso (outra sessão): `SELECT *, now() - updated_at AS since_update FROM private.migration_progress;`
+
+      | Tamanho da linha | Lote | Motivo |
+      |------------------|------|--------|
+      | Pequena (< 1 KB) | 5.000 a 10.000 | rápido, pouca memória |
+      | Média (1 a 10 KB) | 1.000 a 5.000 | equilíbrio |
+      | Grande (> 10 KB) | 100 a 1.000 | evita estouro de memória |
+      | JSONB ou texto pesado | 500 a 2.000 | tamanho variável |
+
+      Throttle: `pg_sleep(0.1)` leve; `0.2` mais seguro em produção; `0.5` impacto mínimo; ou adaptativo,
+      conforme `SELECT count(*) FROM pg_stat_activity WHERE state = 'active'`.
+
+      Verificação:
+      ```sql
+      SELECT count(*) AS remaining FROM public.{{table}} WHERE {{new_column}} IS NULL;               -- esperado: 0
+      SELECT count(*) AS mismatches FROM public.{{table}} WHERE {{new_column}} IS DISTINCT FROM {{old_column}};  -- esperado: 0
+      ```
+      Locks durante a execução:
+      ```sql
+      SELECT pid, state, wait_event_type, wait_event, now() - query_start AS running, left(query, 60)
+      FROM pg_stat_activity WHERE state <> 'idle' AND query ILIKE '%{{table}}%';
+      SELECT relation::regclass, mode, granted, count(*) FROM pg_locks
+      WHERE relation = 'public.{{table}}'::regclass GROUP BY 1, 2, 3;
+      ```
+      Armadilhas: sem SKIP LOCKED (disputa entre processos), sem ORDER BY (não retomável), lote grande
+      demais (locks e memória), sem throttle (sobrecarga), sem registro de progresso (não retoma).
+      Teste em staging com volume de produção.
+    elicit: true
+
+  - id: safety
+    title: Segurança e Rollback
+    instruction: |
+      - Snapshot antes (schema e, se houver mudança de dados, dados das tabelas afetadas) em supabase/snapshots/
+      - Script de rollback em supabase/rollback/{versão}_rollback_{{migration_name}}.sql, na ordem inversa
+      - Backup de dados antes de transformação irreversível: `CREATE TABLE private.{{table}}_backup AS SELECT * FROM public.{{table}};`
+      - Forward fix quando o rollback não for seguro
+      - Execução sem concorrência: um operador ou o pipeline por vez (no Postgres puro, lock consultivo)
+      - Backup gerenciado ou PITR do Supabase disponível e conferido
+    elicit: true
+
+  - id: testing
+    title: Testes
+    instruction: |
+      - Dry-run: `supabase db reset` local e BEGIN, \i, ROLLBACK no alvo
+      - Smoke test depois de aplicar (*db-smoke-test)
+      - RLS: casos positivos e negativos (*db-test-as-user)
+      - Desempenho: linha de base e EXPLAIN dos hot paths afetados (*db-performance)
+    elicit: true
+
+  - id: operations
+    title: Roteiro de Execução
+    instruction: |
+      Comandos exatos, na ordem, com a saída esperada e o critério de sucesso de cada um:
+      1. Ambiente: `SUPABASE_DB_URL` do alvo; versões de psql e pg_dump
+      2. Snapshot antes (pg_dump ou supabase db dump)
+      3. Aplicação (supabase db push, ou psql em transação única no Postgres puro)
+      4. Scripts fora de transação (CREATE INDEX CONCURRENTLY, backfill em lotes), se houver
+      5. Snapshot depois e diff
+      6. Smoke test, auditoria de RLS e verificação dos dados
+    elicit: true
+
+  - id: communication
+    title: Comunicação e Aprovação
+    instruction: |
+      - Envolvidos e quem aprova
+      - Aviso da janela de mudança
+      - Responsáveis pela validação depois da implantação
+      - Caminho de escalonamento em incidente ou rollback
+    elicit: true
+
+  - id: version-tracking
+    title: Rastreamento de Versão
+    instruction: |
+      O Supabase CLI registra cada migration aplicada em `supabase_migrations.schema_migrations`.
+      Consulte com `supabase migration list` (local × remoto) e alinhe divergências com
+      `supabase migration repair {versão} --status applied|reverted`.
+      Quando o projeto exigir trilha extra (Postgres puro, ou auditoria de quem aplicou, checksum e
+      tempo de execução), use uma tabela de controle fora do schema exposto:
+      ```sql
+      CREATE TABLE IF NOT EXISTS private.schema_migrations (
+        version text PRIMARY KEY CHECK (version ~ '^\d{14}$'),   -- AAAAMMDDHHMMSS
+        name text NOT NULL,
+        applied_at timestamptz NOT NULL DEFAULT now(),
+        applied_by text NOT NULL DEFAULT current_user,
+        execution_time_ms integer,
+        success boolean NOT NULL DEFAULT false,
+        checksum text NOT NULL CHECK (length(checksum) = 64),    -- SHA-256 do arquivo
+        rollback_script text,
+        notes text
+      );
+      ```
+      A migration grava a linha no início (success = false) e a atualiza para true no fim.
+      Checksum antes de aplicar: `shasum -a 256 {arquivo}` (ou `sha256sum`); compare com o registrado
+      para detectar arquivo alterado depois de aplicado.
+      Consultas úteis: migrations com success = false (investigar) e as últimas aplicadas, por applied_at.
+    elicit: false
+
+  - id: zero-downtime
+    title: Migration sem Downtime (expand/contract)
+    instruction: |
+      Para mudanças que quebram a versão atual da aplicação, use fases que convivem com as duas versões:
+      1. EXPAND: acrescenta o novo, sem remover nada
+      2. Deploy v2: aplicação escreve no velho e no novo
+      3. BACKFILL: dados existentes, em lotes
+      4. VALIDATE: integridade conferida
+      5. Deploy v3: aplicação lê só o novo
+      6. CONTRACT: remove o velho, depois que todas as versões foram atualizadas
+      Cada fase é uma migration própria; os deploys da aplicação ficam com o @devops.
+
+      ## Coluna nova: seguro, uma fase
+      `ALTER TABLE public.users ADD COLUMN bio text DEFAULT '';` (default constante não reescreve a tabela)
+
+      ## Renomear coluna: seis fases
+      ```sql
+      -- EXPAND: coluna nova + trigger de sincronização
+      ALTER TABLE public.users ADD COLUMN email_address text;
+      CREATE OR REPLACE FUNCTION private.sync_email_columns() RETURNS trigger
+      LANGUAGE plpgsql SET search_path = '' AS $$
+      BEGIN
+        NEW.email_address := coalesce(NEW.email_address, NEW.email);
+        NEW.email := coalesce(NEW.email, NEW.email_address);
+        RETURN NEW;
+      END;
+      $$;
+      CREATE TRIGGER trg_users_sync_email BEFORE INSERT OR UPDATE ON public.users
+        FOR EACH ROW EXECUTE FUNCTION private.sync_email_columns();
+      -- BACKFILL em lotes (seção Migração de Dados); VALIDATE:
+      -- SELECT count(*) FROM public.users WHERE email_address IS DISTINCT FROM email;   -- esperado: 0
+      -- CONTRACT (depois do deploy v3):
+      -- DROP TRIGGER IF EXISTS trg_users_sync_email ON public.users;
+      -- DROP FUNCTION IF EXISTS private.sync_email_columns();
+      -- ALTER TABLE public.users DROP COLUMN email;
+      ```
+      ## Trocar tipo de coluna
+      Coluna nova com o tipo novo (`age_new numeric(5,2)`), trigger de sincronização, backfill,
+      aplicação lendo a nova, e CONTRACT: remove a antiga e renomeia a nova.
+
+      ## NOT NULL em coluna existente
+      1. Default para as linhas novas 2. backfill dos nulos 3. conferência (`count(*) WHERE col IS NULL` = 0)
+      4. `ALTER COLUMN ... SET NOT NULL`. Em tabela grande, antes do passo 4 crie
+      `CHECK (col IS NOT NULL) NOT VALID` e rode `VALIDATE CONSTRAINT`: o SET NOT NULL aproveita a
+      constraint validada e evita a varredura com lock exclusivo.
+
+      ## Índice em produção
+      `CREATE INDEX CONCURRENTLY` não bloqueia escrita, mas não roda em transação: execute fora da
+      migration e mantenha `CREATE INDEX IF NOT EXISTS` na migration para o histórico.
+
+      Quando usar: renomear, trocar tipo, dividir ou juntar tabelas, NOT NULL, remover coluna com dados.
+      Dispensável: coluna nova anulável ou com default constante, tabela nova, índice concorrente,
+      constraint em tabela vazia.
+      Custos: ciclo mais longo, mais fases, dados duplicados por um tempo, deploys coordenados,
+      triggers de sincronização encarecem a escrita.
+      Decisão: a migration quebra a aplicação atual? Não: migration comum. Sim, em tabela de pouco
+      tráfego: janela de manutenção documentada. Sim, em hot path: expand/contract.
+    elicit: false
+
+  - id: supabase-cli
+    title: Fluxo com o Supabase CLI
+    instruction: |
+      ## Local
+      ```bash
+      supabase migration new {{migration_name}}     # cria supabase/migrations/{AAAAMMDDHHMMSS}_{{migration_name}}.sql
+      supabase db reset                             # recria o banco local com migrations e seed
+      supabase db diff --linked                     # compara as migrations locais com o remoto
+      ```
+      ## Staging e produção
+      - Projetos separados para dev, staging e produção.
+      - Aplicação: `supabase db push` pelo *db-migrate, ou por pipeline de CI configurado pelo
+        @devops (*configure-ci), com SUPABASE_ACCESS_TOKEN e a senha do banco nos segredos do GitHub.
+      - Mudança feita no Dashboard: traga com `supabase db pull` e revise antes de versionar.
+      - Objeto criado no Dashboard pode ter outro dono: `ALTER TABLE public.{tabela} OWNER TO postgres;`
+        (o erro típico é `must be owner of table`). Prefira sempre migrations em arquivo.
+      ## Rollback
+      O CLI não tem comando de rollback: no local, `supabase db reset`; no remoto, migration nova que
+      desfaz a mudança (forward-only), ou o script de rollback pelo *db-rollback seguido de
+      `supabase migration repair {versão} --status reverted`.
+      ## Boas práticas
+      Teste local antes de qualquer remoto; migrations pequenas; scripts idempotentes (IF NOT EXISTS,
+      DROP ... IF EXISTS); credenciais só em segredos, nunca no repositório.
+    elicit: false

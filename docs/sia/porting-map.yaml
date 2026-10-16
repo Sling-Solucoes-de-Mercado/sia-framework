@@ -215,7 +215,7 @@ checklists:
   database-design-checklist.md:          { batch: B4, source: [product/checklists/database-design-checklist.md] }
   dba-predeploy-checklist.md:            { batch: B4, source: [product/checklists/dba-predeploy-checklist.md] }
   dba-rollback-checklist.md:             { batch: B4, source: [product/checklists/dba-rollback-checklist.md] }
-  migration-readiness-checklist.md:      { batch: B4, source: [product/checklists/migration-readiness-checklist.md] }
+  migration-readiness-checklist.md:      { batch: B4, source: [product/checklists/migration-readiness-checklist.md], note: 'no AIOX era de migração de design system; no SIA virou prontidão de migration de banco' }
   accessibility-wcag-checklist.md:       { batch: B5, source: [product/checklists/accessibility-wcag-checklist.md] }
   component-quality-checklist.md:        { batch: B5, source: [product/checklists/component-quality-checklist.md, product/checklists/pattern-audit-checklist.md] }
   pre-push-checklist.md:                 { batch: B6, source: [product/checklists/pre-push-checklist.md] }
