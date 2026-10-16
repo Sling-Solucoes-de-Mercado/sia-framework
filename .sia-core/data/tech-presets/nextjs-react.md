@@ -458,7 +458,7 @@ describe('OrderService', () => {
 | ------------------- | --------------- | ------- | ------------------------------------------ |
 | Framework           | Next.js         | ^16.0.0 | Framework React full stack (com Proxy)     |
 | Linguagem           | TypeScript      | ^5.0.0  | Segurança de tipos                         |
-| Estilo              | Tailwind CSS    | ^3.4.0  | CSS utilitário                             |
+| Estilo              | Tailwind CSS    | ^4.0.0  | CSS utilitário (tema via `@theme`; v3 ainda suportado pelas tasks de UX) |
 | Componentes de UI   | shadcn/ui       | latest  | Componentes acessíveis                     |
 | Estado (global)     | Zustand         | ^4.5.0  | Estado global simples                      |
 | Estado (servidor)   | React Query     | ^5.0.0  | Gestão de estado do servidor               |
@@ -479,7 +479,7 @@ describe('OrderService', () => {
 ```bash
 # Principais
 npm install next react react-dom typescript
-npm install tailwindcss postcss autoprefixer
+npm install tailwindcss @tailwindcss/postcss
 npm install @tanstack/react-query zustand
 npm install react-hook-form @hookform/resolvers zod
 npm install @supabase/supabase-js @supabase/ssr

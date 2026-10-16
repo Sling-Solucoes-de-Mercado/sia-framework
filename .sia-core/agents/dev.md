@@ -384,18 +384,19 @@ commands:
     description: 'Gera prompt para ferramentas de geração de interface (v0, Lovable etc.)'
   - name: ux-design-system
     hat: ux
+    args: '[setup|tokens|export|shadcn]'
     visibility: [full, quick]
     task: ux-design-system.md
     description: 'Configura design system: tokens, Tailwind e biblioteca shadcn/ui'
   - name: ux-build-component
     hat: ux
-    args: '{componente}'
+    args: '{componente} [build|compose|extend]'
     visibility: [full, quick]
     task: ux-build-component.md
     description: 'Constrói componente (átomo, molécula, organismo) com testes e acessibilidade'
   - name: ux-audit
     hat: ux
-    args: '{caminho}'
+    args: '{caminho|url}'
     visibility: [full]
     task: ux-audit.md
     description: 'Audita a UI: padrões duplicados, tokens, consistência'

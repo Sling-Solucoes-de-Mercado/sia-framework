@@ -1,0 +1,236 @@
+# Template de arquivo: fonte da verdade dos design tokens do projeto (tokens/tokens.yaml).
+# Usado por: @dev [UX/UI] na task ux-design-system, que gera daqui as exportações DTCG, JSON, CSS, Tailwind e SCSS.
+# Como preencher:
+#   - Troque cada {{placeholder}} pelo valor real e remova as categorias que o projeto não usa.
+#   - Cores em OKLCH, ex.: 'oklch(0.62 0.19 250)'; hex só como fallback, com o motivo documentado.
+#   - Dimensões em px ('16px'), durações em ms ('200ms'), line-height sem unidade.
+#   - Placeholders numéricos (pesos, alturas de linha, z-index) ficam sem aspas no arquivo final.
+#   - Referências usam a sintaxe DTCG ('{layers.core.color.accent-primary}'); troque uma referência por valor
+#     próprio quando o design pedir.
+#   - Camadas: core (primitivos) → semantic (aliases por propósito) → component (mapeamentos por componente).
+#     themes.dark sobrescreve só tokens semânticos de cor.
+#   - Os tipos seguem o DTCG 2025.10: color, dimension, fontFamily, fontWeight, number, duration, cubicBezier,
+#     shadow e typography.
+#   - As exportações são geradas a partir deste arquivo; nunca edite uma exportação à mão.
+
+metadata:
+  version: '1.0.0'                                      # semver: MINOR para token novo; MAJOR para renomear ou remover
+  generated_by: '@dev (Davi) [UX/UI]'
+  generated_at: '{{timestamp}}'
+  dtcg_spec: '2025.10'
+  color_space: oklch
+  coverage: '{{coverage_percentage}}%'                  # brownfield: usos originais cobertos pelos tokens (meta acima de 95%)
+  reduction: '{{patterns_before}} → {{patterns_after}}'  # brownfield: padrões antes → depois da consolidação
+
+layers:
+  core:
+    color:
+      $type: color
+      neutral-50: { $value: '{{color_neutral_50}}', $description: Neutro mais claro }
+      neutral-100: { $value: '{{color_neutral_100}}' }
+      neutral-200: { $value: '{{color_neutral_200}}' }
+      neutral-300: { $value: '{{color_neutral_300}}' }
+      neutral-400: { $value: '{{color_neutral_400}}' }
+      neutral-500: { $value: '{{color_neutral_500}}' }
+      neutral-600: { $value: '{{color_neutral_600}}' }
+      neutral-700: { $value: '{{color_neutral_700}}' }
+      neutral-800: { $value: '{{color_neutral_800}}' }
+      neutral-900: { $value: '{{color_neutral_900}}', $description: Neutro mais escuro }
+      accent-primary: { $value: '{{color_primary}}', $description: Matiz principal da marca }
+      accent-secondary: { $value: '{{color_secondary}}' }
+      accent-success: { $value: '{{color_success}}' }
+      accent-warning: { $value: '{{color_warning}}' }
+      accent-error: { $value: '{{color_error}}' }
+      accent-info: { $value: '{{color_info}}' }
+    spacing:
+      $type: dimension
+      base-unit: { $value: '{{spacing_base_unit}}', $description: Unidade base (4px ou 8px) }
+      xs: { $value: '{{spacing_xs}}' }
+      sm: { $value: '{{spacing_sm}}' }
+      md: { $value: '{{spacing_md}}' }
+      lg: { $value: '{{spacing_lg}}' }
+      xl: { $value: '{{spacing_xl}}' }
+      2xl: { $value: '{{spacing_2xl}}' }
+      3xl: { $value: '{{spacing_3xl}}' }
+    font-family:
+      $type: fontFamily
+      base: { $value: '{{font_family_base}}' }
+      heading: { $value: '{{font_family_heading}}' }
+      mono: { $value: '{{font_family_mono}}' }
+    font-size:
+      $type: dimension
+      xs: { $value: '{{font_size_xs}}' }
+      sm: { $value: '{{font_size_sm}}' }
+      base: { $value: '{{font_size_base}}' }
+      lg: { $value: '{{font_size_lg}}' }
+      xl: { $value: '{{font_size_xl}}' }
+      2xl: { $value: '{{font_size_2xl}}' }
+      3xl: { $value: '{{font_size_3xl}}' }
+    font-weight:
+      $type: fontWeight
+      light: { $value: '{{font_weight_light}}' }
+      normal: { $value: '{{font_weight_normal}}' }
+      medium: { $value: '{{font_weight_medium}}' }
+      semibold: { $value: '{{font_weight_semibold}}' }
+      bold: { $value: '{{font_weight_bold}}' }
+    line-height:
+      $type: number
+      tight: { $value: '{{line_height_tight}}' }
+      normal: { $value: '{{line_height_normal}}' }
+      relaxed: { $value: '{{line_height_relaxed}}' }
+    letter-spacing:
+      $type: dimension
+      tight: { $value: '{{letter_spacing_tight}}' }
+      normal: { $value: '{{letter_spacing_normal}}' }
+      wide: { $value: '{{letter_spacing_wide}}' }
+    radius:
+      $type: dimension
+      none: { $value: '0px' }
+      sm: { $value: '{{radius_sm}}' }
+      base: { $value: '{{radius_base}}' }
+      lg: { $value: '{{radius_lg}}' }
+      xl: { $value: '{{radius_xl}}' }
+      full: { $value: '9999px' }
+    shadow:
+      $type: shadow                                     # valor CSS de box-shadow; a exportação DTCG converte em objeto
+      sm: { $value: '{{shadow_sm}}' }
+      base: { $value: '{{shadow_base}}' }
+      md: { $value: '{{shadow_md}}' }
+      lg: { $value: '{{shadow_lg}}' }
+      xl: { $value: '{{shadow_xl}}' }
+    duration:
+      $type: duration
+      fast: { $value: '{{transition_fast}}' }
+      base: { $value: '{{transition_base}}' }
+      slow: { $value: '{{transition_slow}}' }
+    easing:
+      $type: cubicBezier                                # 4 números, ex.: [0.4, 0, 0.2, 1]
+      standard: { $value: '{{transition_easing}}' }
+    z-index:
+      $type: number
+      dropdown: { $value: '{{z_index_dropdown}}' }
+      sticky: { $value: '{{z_index_sticky}}' }
+      modal: { $value: '{{z_index_modal}}' }
+      popover: { $value: '{{z_index_popover}}' }
+      tooltip: { $value: '{{z_index_tooltip}}' }
+    breakpoint:
+      $type: dimension
+      mobile: { $value: '{{breakpoint_mobile}}' }
+      tablet: { $value: '{{breakpoint_tablet}}' }
+      desktop: { $value: '{{breakpoint_desktop}}' }
+      wide: { $value: '{{breakpoint_wide}}' }
+
+  semantic:
+    color:
+      $type: color
+      background: { $value: '{layers.core.color.neutral-50}' }
+      foreground: { $value: '{layers.core.color.neutral-900}' }
+      primary: { $value: '{layers.core.color.accent-primary}' }
+      primary-hover: { $value: '{{color_primary_hover}}', $description: Variante mais escura para hover e ativo }
+      primary-disabled: { $value: '{{color_primary_disabled}}', $description: Variante mais clara }
+      primary-foreground: { $value: '{layers.core.color.neutral-50}' }
+      secondary: { $value: '{layers.core.color.accent-secondary}' }
+      secondary-hover: { $value: '{{color_secondary_hover}}' }
+      secondary-foreground: { $value: '{layers.core.color.neutral-900}' }
+      success: { $value: '{layers.core.color.accent-success}' }
+      success-light: { $value: '{{color_success_light}}' }
+      warning: { $value: '{layers.core.color.accent-warning}' }
+      warning-light: { $value: '{{color_warning_light}}' }
+      error: { $value: '{layers.core.color.accent-error}' }
+      error-light: { $value: '{{color_error_light}}' }
+      info: { $value: '{layers.core.color.accent-info}' }
+      info-light: { $value: '{{color_info_light}}' }
+      # Aliases esperados pelo shadcn/ui (paridade entre as variantes dos componentes e os tokens)
+      muted: { $value: '{layers.core.color.neutral-100}' }
+      muted-foreground: { $value: '{layers.core.color.neutral-600}' }
+      accent: { $value: '{layers.core.color.neutral-100}' }
+      accent-foreground: { $value: '{layers.core.color.neutral-900}' }
+      destructive: { $value: '{layers.semantic.color.error}' }
+      border: { $value: '{layers.core.color.neutral-200}' }
+      input: { $value: '{layers.core.color.neutral-300}' }
+      ring: { $value: '{layers.semantic.color.primary}' }
+    spacing:
+      $type: dimension
+      inset-xs: { $value: '{layers.core.spacing.xs}' }
+      inset-sm: { $value: '{layers.core.spacing.sm}' }
+      inset-md: { $value: '{layers.core.spacing.md}' }
+      inset-lg: { $value: '{layers.core.spacing.lg}' }
+      inset-xl: { $value: '{layers.core.spacing.xl}' }
+    typography:
+      $type: typography
+      body:
+        $value:
+          fontFamily: '{layers.core.font-family.base}'
+          fontSize: '{layers.core.font-size.base}'
+          fontWeight: '{layers.core.font-weight.normal}'
+          lineHeight: '{layers.core.line-height.normal}'
+          letterSpacing: '{layers.core.letter-spacing.normal}'
+      heading:
+        $value:
+          fontFamily: '{layers.core.font-family.heading}'
+          fontSize: '{layers.core.font-size.2xl}'
+          fontWeight: '{layers.core.font-weight.semibold}'
+          lineHeight: '{layers.core.line-height.tight}'
+          letterSpacing: '{layers.core.letter-spacing.tight}'
+      code:
+        $value:
+          fontFamily: '{layers.core.font-family.mono}'
+          fontSize: '{layers.core.font-size.sm}'
+          fontWeight: '{layers.core.font-weight.medium}'
+          lineHeight: '{layers.core.line-height.normal}'
+          letterSpacing: '{layers.core.letter-spacing.normal}'
+
+  component:
+    button:
+      primary:
+        background: { $value: '{layers.semantic.color.primary}' }
+        background-hover: { $value: '{layers.semantic.color.primary-hover}' }
+        text: { $value: '{layers.semantic.color.primary-foreground}' }
+        border-radius: { $value: '{layers.core.radius.base}' }
+        padding-inline: { $value: '{layers.core.spacing.md}' }
+        padding-block: { $value: '{layers.core.spacing.sm}' }
+      secondary:
+        background: { $value: '{layers.semantic.color.secondary}' }
+        background-hover: { $value: '{layers.semantic.color.secondary-hover}' }
+        text: { $value: '{layers.semantic.color.secondary-foreground}' }
+      destructive:
+        background: { $value: '{layers.semantic.color.destructive}' }
+        text: { $value: '{layers.core.color.neutral-50}' }
+    card:
+      background: { $value: '{layers.semantic.color.background}' }
+      border: { $value: '{layers.semantic.color.border}' }
+      radius: { $value: '{layers.core.radius.lg}' }
+      padding: { $value: '{layers.core.spacing.lg}' }
+    input:
+      background: { $value: '{layers.semantic.color.background}' }
+      border: { $value: '{layers.semantic.color.input}' }
+      border-focus: { $value: '{layers.semantic.color.ring}' }
+      text: { $value: '{layers.semantic.color.foreground}' }
+      placeholder: { $value: '{layers.semantic.color.muted-foreground}' }
+
+themes:
+  dark:
+    # Tema escuro: inclua todo token semântico de cor que muda (paridade) e valide o contraste dos pares.
+    color:
+      $type: color
+      background: { $value: '{layers.core.color.neutral-900}' }
+      foreground: { $value: '{layers.core.color.neutral-50}' }
+      primary: { $value: '{{color_primary_dark_theme}}' }
+      primary-hover: { $value: '{{color_primary_hover_dark_theme}}' }
+      primary-foreground: { $value: '{layers.core.color.neutral-900}' }
+      secondary: { $value: '{{color_secondary_dark_theme}}' }
+      secondary-foreground: { $value: '{layers.core.color.neutral-50}' }
+      muted: { $value: '{layers.core.color.neutral-800}' }
+      muted-foreground: { $value: '{layers.core.color.neutral-400}' }
+      accent: { $value: '{layers.core.color.neutral-800}' }
+      accent-foreground: { $value: '{layers.core.color.neutral-50}' }
+      border: { $value: '{layers.core.color.neutral-800}' }
+      input: { $value: '{layers.core.color.neutral-700}' }
+
+exports:
+  yaml: tokens.yaml
+  dtcg: tokens.dtcg.json
+  json: tokens.json
+  css: tokens.css
+  tailwind: tokens.tailwind.js    # Tailwind v3; no v4, o @theme do CSS de entrada
+  scss: tokens.scss               # opcional, para projetos com Sass

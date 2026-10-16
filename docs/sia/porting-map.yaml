@@ -97,10 +97,10 @@ tasks:
   # ── @dev: UX/UI (B5) ────────────────────────────────────────
   ux-research:           { agent: dev, hat: ux, batch: B5, source: [development/tasks/ux-user-research.md] }
   ux-wireframe:          { agent: dev, hat: ux, batch: B5, source: [development/tasks/ux-create-wireframe.md] }
-  ux-ai-frontend-prompt: { agent: dev, hat: ux, batch: B5, source: [development/tasks/generate-ai-frontend-prompt.md] }
+  ux-ai-frontend-prompt: { agent: dev, hat: ux, batch: B5, source: [development/tasks/generate-ai-frontend-prompt.md, development/tasks/ux-create-wireframe.md] }
   ux-design-system:      { agent: dev, hat: ux, batch: B5, source: [development/tasks/setup-design-system.md, development/tasks/bootstrap-shadcn-library.md, development/tasks/extract-tokens.md, development/tasks/export-design-tokens-dtcg.md] }
   ux-build-component:    { agent: dev, hat: ux, batch: B5, source: [development/tasks/build-component.md, development/tasks/compose-molecule.md, development/tasks/extend-pattern.md] }
-  ux-audit:              { agent: dev, hat: ux, batch: B5, source: [development/tasks/audit-codebase.md, development/tasks/consolidate-patterns.md, development/tasks/generate-shock-report.md, development/tasks/ux-ds-scan-artifact.md, development/tasks/audit-tailwind-config.md] }
+  ux-audit:              { agent: dev, hat: ux, batch: B5, source: [development/tasks/audit-codebase.md, development/tasks/consolidate-patterns.md, development/tasks/generate-shock-report.md, development/tasks/ux-ds-scan-artifact.md, development/tasks/audit-tailwind-config.md, development/tasks/calculate-roi.md] }
 
   # ── @devops (B6) ────────────────────────────────────────────
   environment-bootstrap: { agent: devops, batch: B6, source: [development/tasks/environment-bootstrap.md, development/tasks/init-project-status.md] }

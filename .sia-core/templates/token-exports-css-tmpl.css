@@ -1,0 +1,250 @@
+/*
+ * Template de arquivo: exportação CSS dos design tokens (tokens/tokens.css).
+ * Usado por: @dev [UX/UI] na task ux-design-system, gerado a partir de tokens/tokens.yaml.
+ * Não edite à mão: regenere a partir do tokens.yaml.
+ *
+ * Placeholders:
+ *   {{PROJECT_NAME}}, {{GENERATION_DATE}}, {{TOKEN_SOURCE_FILE}}: cabeçalho do arquivo gerado
+ *   {{#EACH_X}} ... {{/EACH_X}}: repita o bloco uma vez para cada token da categoria X
+ *   {{COLOR_NAME}}, {{COLOR_VALUE}} e afins: nome (kebab-case) e valor de cada token
+ *   {{DARK_VALUE}}: valor do token semântico no tema escuro (themes.dark do tokens.yaml)
+ *
+ * Tailwind v4: o @theme do CSS de entrada já define as variáveis; não importe este arquivo junto.
+ * Use-o em projetos sem Tailwind e em consumidores fora do Tailwind.
+ *
+ * Projeto: {{PROJECT_NAME}}
+ * Gerado em: {{GENERATION_DATE}}
+ * Fonte: {{TOKEN_SOURCE_FILE}}
+ *
+ * Uso:
+ *   .button {
+ *     background-color: var(--color-primary);
+ *     padding: var(--space-sm) var(--space-md);
+ *     font-family: var(--font-base);
+ *   }
+ */
+
+:root {
+  /* ============================================
+     CORES
+     ============================================ */
+
+  /* Primárias */
+  {{#EACH_COLOR_PRIMARY}}
+  --color-{{COLOR_NAME}}: {{COLOR_VALUE}};
+  {{/EACH_COLOR_PRIMARY}}
+
+  /* Semânticas */
+  {{#EACH_COLOR_SEMANTIC}}
+  --color-{{COLOR_NAME}}: {{COLOR_VALUE}};
+  {{/EACH_COLOR_SEMANTIC}}
+
+  /* Neutras */
+  {{#EACH_COLOR_NEUTRAL}}
+  --color-{{COLOR_NAME}}: {{COLOR_VALUE}};
+  {{/EACH_COLOR_NEUTRAL}}
+
+  /* Estados (hover, disabled, light) */
+  {{#EACH_COLOR_STATE}}
+  --color-{{COLOR_NAME}}: {{COLOR_VALUE}};
+  {{/EACH_COLOR_STATE}}
+
+  /* ============================================
+     ESPAÇAMENTO
+     ============================================ */
+
+  /* Escala base */
+  {{#EACH_SPACING}}
+  --space-{{SPACING_NAME}}: {{SPACING_VALUE}};
+  {{/EACH_SPACING}}
+
+  /* Específico de componente */
+  {{#EACH_SPACING_COMPONENT}}
+  --space-{{SPACING_NAME}}: {{SPACING_VALUE}};
+  {{/EACH_SPACING_COMPONENT}}
+
+  /* ============================================
+     TIPOGRAFIA
+     ============================================ */
+
+  /* Famílias */
+  {{#EACH_FONT_FAMILY}}
+  --font-{{FONT_NAME}}: {{FONT_VALUE}};
+  {{/EACH_FONT_FAMILY}}
+
+  /* Tamanhos */
+  {{#EACH_FONT_SIZE}}
+  --font-size-{{SIZE_NAME}}: {{SIZE_VALUE}};
+  {{/EACH_FONT_SIZE}}
+
+  /* Pesos */
+  {{#EACH_FONT_WEIGHT}}
+  --font-weight-{{WEIGHT_NAME}}: {{WEIGHT_VALUE}};
+  {{/EACH_FONT_WEIGHT}}
+
+  /* Alturas de linha */
+  {{#EACH_LINE_HEIGHT}}
+  --line-height-{{HEIGHT_NAME}}: {{HEIGHT_VALUE}};
+  {{/EACH_LINE_HEIGHT}}
+
+  /* Espaçamento entre letras */
+  {{#EACH_LETTER_SPACING}}
+  --letter-spacing-{{SPACING_NAME}}: {{SPACING_VALUE}};
+  {{/EACH_LETTER_SPACING}}
+
+  /* ============================================
+     BORDAS
+     ============================================ */
+
+  /* Larguras */
+  {{#EACH_BORDER_WIDTH}}
+  --border-width-{{WIDTH_NAME}}: {{WIDTH_VALUE}};
+  {{/EACH_BORDER_WIDTH}}
+
+  /* Raios */
+  {{#EACH_BORDER_RADIUS}}
+  --radius-{{RADIUS_NAME}}: {{RADIUS_VALUE}};
+  {{/EACH_BORDER_RADIUS}}
+
+  /* Cores de borda */
+  {{#EACH_BORDER_COLOR}}
+  --border-{{COLOR_NAME}}: {{COLOR_VALUE}};
+  {{/EACH_BORDER_COLOR}}
+
+  /* ============================================
+     SOMBRAS
+     ============================================ */
+
+  {{#EACH_SHADOW}}
+  --shadow-{{SHADOW_NAME}}: {{SHADOW_VALUE}};
+  {{/EACH_SHADOW}}
+
+  /* ============================================
+     Z-INDEX
+     ============================================ */
+
+  {{#EACH_Z_INDEX}}
+  --z-{{Z_NAME}}: {{Z_VALUE}};
+  {{/EACH_Z_INDEX}}
+
+  /* ============================================
+     TRANSIÇÃO E ANIMAÇÃO
+     ============================================ */
+
+  /* Durações */
+  {{#EACH_DURATION}}
+  --duration-{{DURATION_NAME}}: {{DURATION_VALUE}};
+  {{/EACH_DURATION}}
+
+  /* Curvas de easing */
+  {{#EACH_EASING}}
+  --easing-{{EASING_NAME}}: {{EASING_VALUE}};
+  {{/EACH_EASING}}
+
+  /* ============================================
+     BREAKPOINTS
+     Variáveis CSS não funcionam dentro de @media: estes valores servem
+     de referência para JavaScript e documentação.
+     ============================================ */
+
+  {{#EACH_BREAKPOINT}}
+  --breakpoint-{{BP_NAME}}: {{BP_VALUE}};
+  {{/EACH_BREAKPOINT}}
+
+  /* ============================================
+     TOKENS DE COMPONENTE
+     ============================================ */
+
+  {{#EACH_CUSTOM_TOKEN}}
+  --{{CUSTOM_NAME}}: {{CUSTOM_VALUE}};
+  {{/EACH_CUSTOM_TOKEN}}
+}
+
+/* ============================================
+   TEMA ESCURO
+   Segue a preferência do sistema, exceto quando data-theme="light" está definido;
+   data-theme="dark" força o tema escuro. Com a estratégia de classe, troque o seletor por .dark.
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    {{#EACH_DARK_MODE_OVERRIDE}}
+    --color-{{COLOR_NAME}}: {{DARK_VALUE}};
+    {{/EACH_DARK_MODE_OVERRIDE}}
+  }
+}
+
+[data-theme="dark"] {
+  {{#EACH_DARK_MODE_OVERRIDE}}
+  --color-{{COLOR_NAME}}: {{DARK_VALUE}};
+  {{/EACH_DARK_MODE_OVERRIDE}}
+}
+
+/* ============================================
+   CLASSES UTILITÁRIAS (opcional)
+   Só para projetos sem Tailwind; com Tailwind, os utilitários vêm do tema.
+   ============================================ */
+
+/* Cor */
+{{#EACH_COLOR_UTILITY}}
+.text-{{COLOR_NAME}} {
+  color: var(--color-{{COLOR_NAME}});
+}
+
+.bg-{{COLOR_NAME}} {
+  background-color: var(--color-{{COLOR_NAME}});
+}
+
+.border-{{COLOR_NAME}} {
+  border-color: var(--color-{{COLOR_NAME}});
+}
+{{/EACH_COLOR_UTILITY}}
+
+/* Espaçamento */
+{{#EACH_SPACING_UTILITY}}
+.p-{{SPACING_NAME}} {
+  padding: var(--space-{{SPACING_NAME}});
+}
+
+.m-{{SPACING_NAME}} {
+  margin: var(--space-{{SPACING_NAME}});
+}
+
+.gap-{{SPACING_NAME}} {
+  gap: var(--space-{{SPACING_NAME}});
+}
+{{/EACH_SPACING_UTILITY}}
+
+/* Tipografia */
+{{#EACH_FONT_SIZE_UTILITY}}
+.text-{{SIZE_NAME}} {
+  font-size: var(--font-size-{{SIZE_NAME}});
+}
+{{/EACH_FONT_SIZE_UTILITY}}
+
+{{#EACH_FONT_WEIGHT_UTILITY}}
+.font-{{WEIGHT_NAME}} {
+  font-weight: var(--font-weight-{{WEIGHT_NAME}});
+}
+{{/EACH_FONT_WEIGHT_UTILITY}}
+
+/* Raio */
+{{#EACH_RADIUS_UTILITY}}
+.rounded-{{RADIUS_NAME}} {
+  border-radius: var(--radius-{{RADIUS_NAME}});
+}
+{{/EACH_RADIUS_UTILITY}}
+
+/* Sombra */
+{{#EACH_SHADOW_UTILITY}}
+.shadow-{{SHADOW_NAME}} {
+  box-shadow: var(--shadow-{{SHADOW_NAME}});
+}
+{{/EACH_SHADOW_UTILITY}}
+
+/* ============================================
+   VERIFICAÇÃO
+   No console do navegador:
+     getComputedStyle(document.documentElement).getPropertyValue('--color-primary')
+   Resultado esperado: "{{COLOR_PRIMARY_VALUE}}" (a cor primária do projeto)
+   ============================================ */

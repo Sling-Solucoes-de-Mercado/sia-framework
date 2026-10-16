@@ -1,0 +1,357 @@
+# Template da especificação de UI/UX do projeto.
+# Usado por: @dev [UX/UI] em *create-front-end-spec, via task create-doc.
+# Entradas recomendadas: PRD, project brief e a pesquisa em docs/ux/research/ (*ux-research).
+# Detalhes técnicos de implementação ficam na arquitetura de frontend (docs/front-end-architecture.md).
+template:
+  id: front-end-spec-template
+  name: Especificação de UI/UX
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/front-end-spec.md
+    title: "{{project_name}}: Especificação de UI/UX"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: introduction
+    title: Introdução
+    instruction: |
+      Revise os documentos disponíveis (project brief, PRD e a pesquisa em docs/ux/research/, se houver) para entender necessidades, dores e resultados esperados dos usuários antes de especificar.
+      Mantenha o parágrafo abaixo, substituindo o nome do projeto.
+    type: template-text
+    template: |
+      Este documento define as metas de experiência do usuário, a arquitetura de informação, os fluxos de usuário e as especificações de design visual da interface de {{project_name}}. Ele é a base do design visual e do desenvolvimento de frontend e garante uma experiência coesa e centrada no usuário.
+    sections:
+      - id: ux-goals-principles
+        title: Metas e Princípios de UX
+        instruction: |
+          Trabalhe com o usuário para definir os itens abaixo. Se ainda não existirem, conduza a discussão:
+          1. Personas-alvo: elicite ou confirme as do PRD ou de docs/ux/research/personas.md
+          2. Metas de usabilidade: o que é sucesso para os usuários
+          3. Princípios de design: de 3 a 5 princípios orientadores
+        elicit: true
+        sections:
+          - id: user-personas
+            title: Personas-Alvo
+            template: "{{persona_descriptions}}"
+            examples:
+              - "**Usuário avançado:** profissionais técnicos que precisam de recursos avançados e de eficiência"
+              - "**Usuário casual:** usuários ocasionais que priorizam facilidade de uso e orientação clara"
+              - "**Administrador:** gestores do sistema que precisam de controle e supervisão"
+          - id: usability-goals
+            title: Metas de Usabilidade
+            template: "{{usability_goals}}"
+            examples:
+              - "Facilidade de aprendizado: novos usuários concluem as tarefas principais em até 5 minutos"
+              - "Eficiência de uso: usuários avançados concluem tarefas frequentes com o mínimo de cliques"
+              - "Prevenção de erros: validação clara e confirmação em ações destrutivas"
+              - "Memorização: usuários esporádicos voltam sem precisar reaprender"
+          - id: design-principles
+            title: Princípios de Design
+            type: numbered-list
+            template: "{{design_principles}}"
+            examples:
+              - "**Clareza acima de engenhosidade:** priorize a comunicação clara sobre a inovação estética"
+              - "**Revelação progressiva:** mostre só o necessário, quando for necessário"
+              - "**Padrões consistentes:** use padrões de UI familiares em toda a aplicação"
+              - "**Feedback imediato:** toda ação tem resposta clara e imediata"
+              - "**Acessível por padrão:** projete para todos os usuários desde o início"
+      - id: changelog
+        title: Registro de Alterações
+        type: table
+        columns: [Data, Versão, Descrição, Autor]
+        instruction: Registre as versões e as mudanças do documento.
+
+  - id: information-architecture
+    title: Arquitetura de Informação
+    instruction: |
+      Construa com o usuário uma arquitetura de informação completa:
+      1. Mapa do site ou inventário de telas com todas as áreas principais
+      2. Estrutura de navegação (primária, secundária, breadcrumbs)
+      3. Diagramas Mermaid para a representação visual
+      4. Modelos mentais dos usuários e agrupamentos esperados
+    elicit: true
+    sections:
+      - id: sitemap
+        title: Mapa do Site / Inventário de Telas
+        type: code
+        instruction: Diagrama Mermaid (graph TD) com as áreas e as telas principais.
+        template: "{{sitemap_diagram}}"
+        examples:
+          - |
+            graph TD
+                A[Início] --> B[Dashboard]
+                A --> C[Produtos]
+                A --> D[Conta]
+                B --> B1[Analytics]
+                B --> B2[Atividade recente]
+                C --> C1[Navegar]
+                C --> C2[Buscar]
+                C --> C3[Detalhe do produto]
+                D --> D1[Perfil]
+                D --> D2[Configurações]
+                D --> D3[Cobrança]
+      - id: navigation-structure
+        title: Estrutura de Navegação
+        type: template-text
+        template: |
+          **Navegação primária:** {{primary_nav_description}}
+
+          **Navegação secundária:** {{secondary_nav_description}}
+
+          **Estratégia de breadcrumbs:** {{breadcrumb_strategy}}
+
+  - id: user-flows
+    title: Fluxos de Usuário
+    instruction: |
+      Para cada tarefa crítica do usuário identificada no PRD:
+      1. Defina claramente o objetivo do usuário
+      2. Mapeie todos os passos, inclusive os pontos de decisão
+      3. Considere casos de borda e estados de erro
+      4. Use diagramas Mermaid de fluxo
+      5. Aponte ferramentas externas (Figma, Miro) quando o fluxo detalhado estiver lá e reaproveite os fluxos de docs/ux/wireframes/ quando existirem
+      Crie uma subseção por fluxo principal.
+    elicit: true
+    repeatable: true
+    sections:
+      - id: flow
+        title: "{{flow_name}}"
+        type: template-text
+        template: |
+          **Objetivo do usuário:** {{flow_goal}}
+
+          **Pontos de entrada:** {{entry_points}}
+
+          **Critérios de sucesso:** {{success_criteria}}
+        sections:
+          - id: flow-diagram
+            title: Diagrama do Fluxo
+            type: code
+            instruction: Diagrama Mermaid (graph TD ou flowchart) com o caminho de sucesso e o caminho de erro.
+            template: "{{flow_diagram}}"
+          - id: edge-cases
+            title: "Casos de Borda e Tratamento de Erros:"
+            type: bullet-list
+            template: "- {{edge_case}}"
+          - id: notes
+            type: template-text
+            template: "**Notas:** {{flow_notes}}"
+
+  - id: wireframes-mockups
+    title: Wireframes e Mockups
+    instruction: |
+      Esclareça onde ficam os designs visuais detalhados (Figma, Sketch etc.) e como referenciá-los. Referencie os wireframes de docs/ux/wireframes/, quando existirem. Se faltarem wireframes de baixa fidelidade, ofereça ajuda para conceber o layout das telas principais (*ux-wireframe).
+    elicit: true
+    sections:
+      - id: design-files
+        type: template-text
+        template: "**Arquivos de design principais:** {{design_tool_link}}"
+      - id: key-screen-layouts
+        title: Layouts das Telas Principais
+        repeatable: true
+        sections:
+          - id: screen
+            title: "{{screen_name}}"
+            type: template-text
+            template: |
+              **Propósito:** {{screen_purpose}}
+
+              **Elementos principais:**
+              - {{element_1}}
+              - {{element_2}}
+              - {{element_3}}
+
+              **Notas de interação:** {{interaction_notes}}
+
+              **Referência no arquivo de design:** {{specific_frame_link}}
+
+  - id: component-library
+    title: Biblioteca de Componentes / Design System
+    instruction: |
+      Discuta se o projeto usa um design system existente ou cria um novo. O padrão do SIA é o shadcn/ui ligado aos tokens do projeto (*ux-design-system). Para um design system novo, identifique os componentes fundamentais e os estados principais de cada um, organizados por Atomic Design. Especificações técnicas detalhadas ficam na arquitetura de frontend.
+    elicit: true
+    sections:
+      - id: design-system-approach
+        type: template-text
+        template: "**Abordagem do design system:** {{design_system_approach}}"
+      - id: core-components
+        title: Componentes Principais
+        repeatable: true
+        sections:
+          - id: component
+            title: "{{component_name}}"
+            type: template-text
+            template: |
+              **Propósito:** {{component_purpose}}
+
+              **Variantes:** {{component_variants}}
+
+              **Estados:** {{component_states}}
+
+              **Diretrizes de uso:** {{usage_guidelines}}
+
+  - id: branding-style
+    title: Marca e Guia de Estilo
+    instruction: |
+      Aponte o guia de estilo existente ou defina os elementos-chave da marca, de forma consistente com as diretrizes da empresa. Quando o design system existir, use os tokens de tokens/tokens.yaml.
+    elicit: true
+    sections:
+      - id: visual-identity
+        title: Identidade Visual
+        type: template-text
+        template: "**Diretrizes de marca:** {{brand_guidelines_link}}"
+      - id: color-palette
+        title: Paleta de Cores
+        type: table
+        columns: ["Tipo de cor", "Valor (OKLCH ou hex)", "Uso"]
+        instruction: |
+          Uma linha por tipo: Primária, Secundária, Destaque, Sucesso (feedback positivo, confirmações), Alerta (cuidados, avisos importantes), Erro (erros, ações destrutivas) e Neutras (texto, bordas, fundos). Informe também o valor no tema escuro, quando houver.
+      - id: typography
+        title: Tipografia
+        sections:
+          - id: font-families
+            title: Famílias de Fonte
+            type: template-text
+            template: |
+              - **Primária:** {{primary_font}}
+              - **Secundária:** {{secondary_font}}
+              - **Monoespaçada:** {{mono_font}}
+          - id: type-scale
+            title: Escala Tipográfica
+            type: table
+            columns: ["Elemento", "Tamanho", "Peso", "Altura de linha"]
+            instruction: "Linhas: H1, H2, H3, Corpo e Pequeno."
+      - id: iconography
+        title: Iconografia
+        type: template-text
+        template: |
+          **Biblioteca de ícones:** {{icon_library}}
+
+          **Diretrizes de uso:** {{icon_guidelines}}
+      - id: spacing-layout
+        title: Espaçamento e Layout
+        type: template-text
+        template: |
+          **Grid:** {{grid_system}}
+
+          **Escala de espaçamento:** {{spacing_scale}}
+
+  - id: accessibility
+    title: Requisitos de Acessibilidade
+    instruction: |
+      Defina requisitos de acessibilidade específicos a partir do nível de conformidade e das necessidades dos usuários, de forma completa e prática. O padrão do SIA é WCAG 2.2 nível AA (ver .sia-core/data/wcag-compliance-guide.md). Registre metas acima disso só quando o produto exigir.
+    elicit: true
+    sections:
+      - id: compliance-target
+        title: Nível de Conformidade
+        type: template-text
+        template: "**Padrão:** {{compliance_standard}}"
+      - id: key-requirements
+        title: Requisitos Principais
+        type: template-text
+        template: |
+          **Visual:**
+          - Contraste de cor: {{contrast_requirements}}
+          - Indicadores de foco: {{focus_requirements}}
+          - Tamanho de texto: {{text_requirements}}
+
+          **Interação:**
+          - Navegação por teclado: {{keyboard_requirements}}
+          - Leitores de tela: {{screen_reader_requirements}}
+          - Alvos de toque: {{touch_requirements}}
+
+          **Conteúdo:**
+          - Texto alternativo: {{alt_text_requirements}}
+          - Estrutura de títulos: {{heading_requirements}}
+          - Rótulos de formulário: {{form_requirements}}
+      - id: testing-strategy
+        title: Estratégia de Testes
+        type: template-text
+        template: "{{accessibility_testing}}"
+
+  - id: responsiveness
+    title: Estratégia Responsiva
+    instruction: |
+      Defina os breakpoints e as estratégias de adaptação para cada tamanho de dispositivo, considerando as restrições técnicas e o contexto de uso.
+    elicit: true
+    sections:
+      - id: breakpoints
+        title: Breakpoints
+        type: table
+        columns: ["Breakpoint", "Largura mínima", "Largura máxima", "Dispositivos-alvo"]
+        instruction: "Linhas: Mobile, Tablet, Desktop e Wide (sem largura máxima)."
+      - id: adaptation-patterns
+        title: Padrões de Adaptação
+        type: template-text
+        template: |
+          **Mudanças de layout:** {{layout_adaptations}}
+
+          **Mudanças de navegação:** {{nav_adaptations}}
+
+          **Prioridade de conteúdo:** {{content_adaptations}}
+
+          **Mudanças de interação:** {{interaction_adaptations}}
+
+  - id: animation
+    title: Animações e Microinterações
+    instruction: |
+      Defina os princípios de movimento e as interações-chave, com atenção a desempenho e acessibilidade (respeite a preferência de movimento reduzido do sistema).
+    elicit: true
+    sections:
+      - id: motion-principles
+        title: Princípios de Movimento
+        type: template-text
+        template: "{{motion_principles}}"
+      - id: key-animations
+        title: Animações Principais
+        repeatable: true
+        type: template-text
+        template: "- **{{animation_name}}:** {{animation_description}} (duração: {{duration}}, easing: {{easing}})"
+
+  - id: performance
+    title: Considerações de Desempenho
+    instruction: Defina as metas e as estratégias de desempenho que influenciam as decisões de UX.
+    sections:
+      - id: performance-goals
+        title: Metas de Desempenho
+        type: template-text
+        template: |
+          - **Carregamento da página:** {{load_time_goal}}
+          - **Resposta à interação:** {{interaction_goal}}
+          - **FPS das animações:** {{animation_goal}}
+      - id: design-strategies
+        title: Estratégias de Design
+        type: template-text
+        template: "{{performance_strategies}}"
+
+  - id: next-steps
+    title: Próximos Passos
+    instruction: |
+      Depois de concluir a especificação:
+      1. Recomende a revisão com os stakeholders
+      2. Sugira criar ou atualizar os designs visuais na ferramenta de design
+      3. Prepare o handoff para o @dev [Arquitetura] criar a arquitetura de frontend (*create-front-end-architecture, em docs/front-end-architecture.md); para gerar a interface com IA, *ux-ai-prompt
+      4. Registre as perguntas em aberto e as decisões pendentes
+    sections:
+      - id: immediate-actions
+        title: Ações Imediatas
+        type: numbered-list
+        template: "{{action}}"
+      - id: design-handoff-checklist
+        title: Checklist de Handoff de Design
+        type: template-text
+        template: |
+          - [ ] Todos os fluxos de usuário documentados
+          - [ ] Inventário de componentes completo
+          - [ ] Requisitos de acessibilidade definidos
+          - [ ] Estratégia responsiva clara
+          - [ ] Diretrizes de marca incorporadas
+          - [ ] Metas de desempenho estabelecidas
+
+  - id: checklist-results
+    title: Resultado dos Checklists
+    instruction: |
+      Se houver checklist de UI/UX aplicável, rode-o contra este documento e registre o resultado aqui (por exemplo, accessibility-wcag-checklist.md para os requisitos de acessibilidade).

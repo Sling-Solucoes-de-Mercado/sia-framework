@@ -158,7 +158,7 @@ Resolução de dependências: `{type}/{name}` → `.sia-core/{type}/{name}`. Exe
 | Resultado de brainstorming | `docs/brainstorming-session-results.md` |
 | Índice de stories | `docs/stories/index.md` |
 | Arquivo morto do backlog | `docs/stories/backlog-archive-{AAAA-MM}.md` |
-| Artefatos de UX (pesquisa, wireframes, auditorias) | `docs/ux/` |
+| Artefatos de UX | `docs/ux/` (`research/`, `wireframes/{slug}/`, `ai-prompts/`, `design-system/`, `components/`, `audit/{AAAA-MM-DD}/`) |
 | Especificação de front-end | `docs/front-end-spec.md` |
 | Arquitetura de front-end | `docs/front-end-architecture.md` |
 | Revisões de especialistas e relatórios (brownfield discovery) | `docs/reviews/`, `docs/reports/` |
