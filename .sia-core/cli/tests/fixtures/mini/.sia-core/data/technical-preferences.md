@@ -1,0 +1,1 @@
+# Preferências técnicas (fixture)

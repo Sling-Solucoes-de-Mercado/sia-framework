@@ -1,0 +1,16 @@
+{
+  "name": "sia-core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SIA (Sling Inteligência Artificial): CLI sia, hooks de governança e skills de workflow",
+  "license": "UNLICENSED",
+  "bin": {
+    "sia": "cli/sia.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test cli/tests/"
+  }
+}

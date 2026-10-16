@@ -1,0 +1,7 @@
+name: demo
+version: 1.0.0
+description: Squad de demonstração da fixture
+license: MIT
+components:
+  agents: [demo-agent.md]
+  tasks: [demo-task.md]

@@ -1,0 +1,21 @@
+workflows:
+  - id: sdc
+    chain:
+      - step: 1
+        agent: '@pm'
+        command: '*create-story'
+      - step: 2
+        agent: '@pm'
+        command: '*validate-story {storyId}'
+      - step: 3
+        agent: '@dev'
+        command: '*develop {storyId}'
+        alternatives:
+          - agent: '@dev'
+            command: '*apply-qa-fixes {storyId}'
+      - step: 4
+        agent: '@validator'
+        command: '*revisar-feature {storyId}'
+      - step: 5
+        agent: '@devops'
+        command: '*push'

@@ -1,0 +1,42 @@
+# Fixture de testes da CLI sia (mini-core).
+sia:
+  version: 1.0.0
+project:
+  name: mini
+  type: greenfield
+paths:
+  stories: docs/stories
+  qa: docs/qa
+  qaGates: docs/qa/gates
+  qaAssessments: docs/qa/assessments
+  inspections: docs/qa/inspections
+  squads: squads
+  runtime: .sia
+quality:
+  storyValidation:
+    minScore: 7
+  inspection:
+    requiredBeforeGate: true
+  qaLoop:
+    maxIterations: 2
+ide:
+  targets: [claude-code, codex, gemini, grok]
+  slashPrefix: SIA
+integrations:
+  supabase:
+    enabled: false
+    projectRef: 'abc123'
+    mcp:
+      readOnly: true
+  vercel:
+    enabled: false
+    team: ''
+boundary:
+  frameworkProtection: true
+  protected:
+    - .sia-core/constitution.md
+    - .sia-core/tasks/**
+    - .sia-core/data/**
+  exceptions:
+    - .sia-core/core-config.yaml
+    - .sia-core/data/technical-preferences.md

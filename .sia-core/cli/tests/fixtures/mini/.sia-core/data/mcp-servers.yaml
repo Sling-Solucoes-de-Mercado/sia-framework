@@ -1,0 +1,45 @@
+servers:
+  supabase:
+    name: Supabase
+    docs: https://supabase.com/docs/guides/getting-started/mcp
+    url: https://mcp.supabase.com/mcp
+    params:
+      project_ref: '{{integrations.supabase.projectRef}}'
+      read_only: '{{integrations.supabase.mcp.readOnly}}'
+      features: ''
+    auth: oauth
+    env: [SUPABASE_ACCESS_TOKEN]
+    notes: Somente leitura por padrão.
+  vercel:
+    name: Vercel
+    url: https://mcp.vercel.com
+    params:
+      team: '{{integrations.vercel.team}}'
+    auth: oauth
+ides:
+  claude-code:
+    file: .mcp.json
+    format: json
+    key: mcpServers
+    entry: { type: http, url: '{{url}}' }
+    login: 'No Claude Code, rode /mcp e autentique {{id}}.'
+  codex:
+    file: .codex/config.toml
+    format: toml
+    key: mcp_servers
+    entry: { url: '{{url}}', bearer_token_env_var: SUPABASE_ACCESS_TOKEN, http_headers: { X-Client: sia }, enabled: true }
+    login: 'codex mcp login {{id}}'
+  gemini:
+    file: .gemini/settings.json
+    format: json
+    key: mcpServers
+    entry: { httpUrl: '{{url}}', headers: { Authorization: 'Bearer {{env.SUPABASE_ACCESS_TOKEN}}' } }
+    login: '/mcp auth {{id}}'
+  grok:
+    file: .grok/config.toml
+    format: toml
+    key: mcp_servers
+    entry: { url: '{{url}}', enabled: true }
+    login: 'Abra /mcps no Grok e autentique {{id}}.'
+  cursor:
+    unsupported: fora do escopo do SIA

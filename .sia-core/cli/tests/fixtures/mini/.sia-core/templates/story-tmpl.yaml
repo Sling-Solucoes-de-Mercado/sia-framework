@@ -1,0 +1,7 @@
+template:
+  id: story-template
+  name: Story
+  version: 1.0
+sections:
+  - id: status
+    title: Status

@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "required": ["name", "version"],
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z0-9-]+$", "minLength": 2, "maxLength": 50 },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "license": { "type": "string", "enum": ["MIT", "UNLICENSED"] },
+    "components": {
+      "type": "object",
+      "properties": {
+        "agents": { "type": "array", "items": { "type": "string" } },
+        "tasks": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "additionalProperties": true
+}

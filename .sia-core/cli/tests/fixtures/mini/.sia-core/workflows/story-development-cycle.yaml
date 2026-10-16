@@ -1,0 +1,23 @@
+workflow:
+  id: story-development-cycle
+  name: Ciclo de Desenvolvimento de Story
+  sequence:
+    - step: create_story
+      id: create
+      agent: pm
+      hat: scrum
+      task: create-story.md
+      requires: []
+    - step: validate_story
+      id: validate
+      agent: pm
+      hat: owner
+      task: validate-story.md
+      requires: [create]
+    - step: develop_story
+      id: develop
+      agent: dev
+      task: develop-story.md
+      requires: [validate]
+    - meta: end
+      notes: Fim do ciclo.
